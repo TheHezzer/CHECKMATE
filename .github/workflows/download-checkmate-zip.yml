@@ -1,0 +1,45 @@
+name: Download CHECKMATE ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - splash-update
+    paths:
+      - '*.zip'
+      - '.github/workflows/download-checkmate-zip.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find and validate project ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=( *.zip )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No ZIP archive found in repository root."
+            exit 1
+          fi
+          for file in "${files[@]}"; do
+            echo "Checking: $file"
+            unzip -t "$file"
+          done
+          printf '%s\n' "${files[@]}" > zip-files.txt
+
+      - name: Upload original project ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHECKMATE-original-project
+          path: '*.zip'
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
