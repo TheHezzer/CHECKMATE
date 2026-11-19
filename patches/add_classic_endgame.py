@@ -56,7 +56,7 @@ replace_func("_handle_game_board_click", r'''func _handle_game_board_click(scree
     if not _move_keeps_king_safe(piece, col, row, target_piece):
         status_label.text = "Нельзя оставлять своего короля под шахом."
         return
-    var is_castle := kind == "K" and abs(col - from_col) == 2
+    var is_castle: bool = kind == "K" and abs(col - from_col) == 2
     if target_piece != null:
         game_piece_nodes.erase(target_piece)
         target_piece.queue_free()
