@@ -64,22 +64,22 @@ jobs:
           fi
 
           (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v17.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip"
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v17.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip" builds/CHECKMATE_modes_v16.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v17.zip" builds/CHECKMATE_classic_v17.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE modes v16 build"
+          commit_message: "Save CHECKMATE classic v17 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_modes_v16.zip
+          file_pattern: builds/CHECKMATE_classic_v17.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
           name: CHECKMATE-classic-v17
-          path: CHECKMATE_modes_v16.zip
+          path: CHECKMATE_classic_v17.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
