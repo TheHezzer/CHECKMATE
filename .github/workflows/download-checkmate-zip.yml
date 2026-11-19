@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v29 — rating matchmaking room
+name: Build CHECKMATE classic v29 — rating matchmaking room (retry)
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
