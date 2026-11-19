@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v22 — matchmaking and private rooms
+name: Build CHECKMATE classic v23 — matchmaking and private rooms
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
@@ -84,23 +84,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v22.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v22.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v23.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v23.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v22.zip" builds/CHECKMATE_classic_v22.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v23.zip" builds/CHECKMATE_classic_v23.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v22 build"
+          commit_message: "Save CHECKMATE classic v23 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v22.zip
+          file_pattern: builds/CHECKMATE_classic_v23.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v22
-          path: CHECKMATE_classic_v22.zip
+          name: CHECKMATE-classic-v23
+          path: CHECKMATE_classic_v23.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
