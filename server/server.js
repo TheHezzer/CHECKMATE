@@ -10,12 +10,13 @@ const INITIAL_RATING_GAP = 100;
 const RATING_GAP_STEP = 50;
 const RATING_GAP_STEP_MS = 15 * 1000;
 const MAX_RATING_GAP = 500;
-const rooms = new Map();
+const matches = new Map();
+const CLASSIC_TEAM_SIZE = 16;
+const CLASSIC_MATCH_SIZE = 32;
 const tickets = new Map();
 const waiting = new Map();
 
 function cleanExpired(now = Date.now()) {
-  for (const [code, room] of rooms) if (room.expiresAt <= now) rooms.delete(code);
   for (const [id, ticket] of tickets) {
     if (ticket.expiresAt <= now) {
       tickets.delete(id);
@@ -75,66 +76,47 @@ function allowedRatingGap(waitMs) {
   return Math.min(MAX_RATING_GAP, INITIAL_RATING_GAP + Math.floor(Math.max(0, waitMs) / RATING_GAP_STEP_MS) * RATING_GAP_STEP);
 }
 
-function createRoom({ hostId, address, port, mode, rating }) {
-  let code;
-  do code = roomCode(); while (rooms.has(code));
-  const room = {
-    code, hostId, address, port, mode, rating,
-    guestId: null,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + ROOM_TTL_MS
-  };
-  rooms.set(code, room);
-  return room;
-}
-
-function tryMatch(ticket, now = Date.now()) {
-  const queue = waiting.get(ticket.key);
-  if (!queue) return null;
-  let best = null;
-  let bestDifference = Infinity;
-  for (const id of queue) {
-    const candidate = tickets.get(id);
-    if (!candidate || candidate.id === ticket.id || candidate.status !== "waiting" || candidate.playerId === ticket.playerId) continue;
-    const difference = Math.abs(candidate.rating - ticket.rating);
-    const candidateGap = allowedRatingGap(now - candidate.createdAt);
-    const ticketGap = allowedRatingGap(now - ticket.createdAt);
-    const allowedGap = Math.max(candidateGap, ticketGap);
-    if (difference <= allowedGap && difference < bestDifference) {
-      best = candidate;
-      bestDifference = difference;
-    }
+function balanceTeams(candidates) {
+  const sorted=[...candidates].sort((a,b)=>b.rating-a.rating||a.createdAt-b.createdAt);
+  const teams={white:[],black:[]},sums={white:0,black:0};
+  for(const p of sorted){
+    let team;
+    if(teams.white.length>=CLASSIC_TEAM_SIZE)team="black";
+    else if(teams.black.length>=CLASSIC_TEAM_SIZE)team="white";
+    else if(teams.white.length<teams.black.length)team="white";
+    else if(teams.black.length<teams.white.length)team="black";
+    else team=sums.white<=sums.black?"white":"black";
+    teams[team].push(p);sums[team]+=p.rating;
   }
-  if (!best) return null;
-
-  queue.delete(best.id);
-  queue.delete(ticket.id);
-  if (queue.size === 0) waiting.delete(ticket.key);
-  const room = createRoom({
-    hostId: best.playerId,
-    address: best.address,
-    port: best.port,
-    mode: best.key,
-    rating: best.rating
-  });
-  room.guestId = ticket.playerId;
-  best.status = "matched";
-  best.role = "host";
-  best.host = room.address;
-  best.port = room.port;
-  best.code = room.code;
-  best.opponentRating = ticket.rating;
-  best.ratingDifference = bestDifference;
-  best.expiresAt = now + QUEUE_TTL_MS;
-  ticket.status = "matched";
-  ticket.role = "guest";
-  ticket.host = room.address;
-  ticket.port = room.port;
-  ticket.code = room.code;
-  ticket.opponentRating = best.rating;
-  ticket.ratingDifference = bestDifference;
-  ticket.expiresAt = now + QUEUE_TTL_MS;
-  return room;
+  return [...teams.white.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,team:"white",slot})),...teams.black.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,team:"black",slot}))];
+}
+function eligiblePlayers(ticket,now=Date.now()){
+  const queue=waiting.get(ticket.key);if(!queue)return[];
+  return [...queue].map(id=>tickets.get(id)).filter(p=>p&&p.status==="waiting"&&p.playerId!==ticket.playerId)
+    .filter(p=>Math.abs(p.rating-ticket.rating)<=Math.max(allowedRatingGap(now-p.createdAt),allowedRatingGap(now-ticket.createdAt)))
+    .sort((a,b)=>Math.abs(a.rating-ticket.rating)-Math.abs(b.rating-ticket.rating)||a.createdAt-b.createdAt);
+}
+function queuePreview(ticket,now=Date.now()){
+  const queue=waiting.get(ticket.key);
+  const count=queue?[...queue].map(id=>tickets.get(id)).filter(p=>p&&p.status==="waiting").length:0;
+  return {players:balanceTeams([ticket,...eligiblePlayers(ticket,now)].slice(0,CLASSIC_MATCH_SIZE)),queueCount:count,requiredPlayers:CLASSIC_MATCH_SIZE,allowedRatingGap:allowedRatingGap(now-ticket.createdAt)};
+}
+function tryMatch(ticket,now=Date.now()){
+  const candidates=[ticket,...eligiblePlayers(ticket,now)].slice(0,CLASSIC_MATCH_SIZE);
+  if(candidates.length<CLASSIC_MATCH_SIZE)return null;
+  const roster=balanceTeams(candidates);if(roster.length!==CLASSIC_MATCH_SIZE)return null;
+  const matchId=crypto.randomUUID();
+  const match={id:matchId,mode:ticket.key,createdAt:now,players:roster,gameServerHost:process.env.GAME_SERVER_HOST||"",gameServerPort:Number(process.env.GAME_SERVER_PORT||24567)};
+  matches.set(matchId,match);
+  const queue=waiting.get(ticket.key);
+  for(const p of candidates){
+    if(queue)queue.delete(p.id);
+    p.status="matched";p.matchId=matchId;p.players=roster;
+    const entry=roster.find(x=>x.playerId===p.playerId);p.team=entry.team;p.slot=entry.slot;
+    p.gameServerHost=match.gameServerHost;p.gameServerPort=match.gameServerPort;p.expiresAt=now+QUEUE_TTL_MS;
+  }
+  if(queue&&queue.size===0)waiting.delete(ticket.key);
+  return match;
 }
 
 export function createMatchmakingServer(options = {}) {
@@ -173,67 +155,22 @@ export function createMatchmakingServer(options = {}) {
         return send(res, 200, { players: await accounts.leaderboard(limit) });
       }
 
-      if (req.method === "POST" && url.pathname === "/rooms") {
-        const body = await readJson(req);
-        const hostId = String(body.playerId || "").trim().slice(0, 64);
-        const port = Number(body.port || 24567);
-        const mode = String(body.mode || "classic").trim().slice(0, 32);
-        const rating = normalizeRating(body.rating ?? 1000);
-        if (!hostId || !Number.isInteger(port) || port < 1 || port > 65535) {
-          return send(res, 400, { error: "INVALID_ROOM_DATA" });
-        }
-        const room = createRoom({ hostId, address: clientAddress(req), port, mode, rating });
-        return send(res, 201, { code: room.code, host: room.address, port: room.port, mode: room.mode, expiresIn: ROOM_TTL_MS / 1000 });
-      }
-
-      const joinMatch = url.pathname.match(/^\/rooms\/([A-Z2-9]{6})\/join$/);
-      if (req.method === "POST" && joinMatch) {
-        const body = await readJson(req);
-        const playerId = String(body.playerId || "").trim().slice(0, 64);
-        const room = rooms.get(joinMatch[1]);
-        if (!playerId) return send(res, 400, { error: "PLAYER_ID_REQUIRED" });
-        if (!room) return send(res, 404, { error: "ROOM_NOT_FOUND" });
-        if (room.hostId === playerId) return send(res, 409, { error: "CANNOT_JOIN_OWN_ROOM" });
-        if (room.guestId) return send(res, 409, { error: "ROOM_FULL" });
-        room.guestId = playerId;
-        room.expiresAt = Date.now() + ROOM_TTL_MS;
-        return send(res, 200, { joined: true, host: room.address, port: room.port, mode: room.mode });
-      }
-
       if (req.method === "POST" && url.pathname === "/matchmaking/queue") {
-        const body = await readJson(req);
-        const playerId = String(body.playerId || "").trim().slice(0, 64);
-        const mode = String(body.mode || "classic").trim().slice(0, 32);
-        const rating = normalizeRating(body.rating ?? 1000);
-        const port = Number(body.port || 24567);
-        if (!playerId || !Number.isInteger(port) || port < 1 || port > 65535) {
-          return send(res, 400, { error: "INVALID_QUEUE_DATA" });
-        }
-        const ticketId = crypto.randomUUID();
-        const ticket = {
-          id: ticketId, playerId, key: mode, status: "waiting",
-          address: clientAddress(req), port, rating,
-          createdAt: Date.now(),
-          expiresAt: Date.now() + QUEUE_TTL_MS
-        };
-        tickets.set(ticketId, ticket);
-        const queue = waiting.get(mode) || new Set();
-        queue.add(ticketId);
-        waiting.set(mode, queue);
-        const room = tryMatch(ticket);
-        if (!room) {
-          return send(res, 201, {
-            ticket: ticketId, status: "waiting", pollAfterMs: 1500,
-            rating, initialRatingGap: INITIAL_RATING_GAP,
-            maxRatingGap: MAX_RATING_GAP
-          });
-        }
-        return send(res, 201, {
-          ticket: ticketId, status: "matched", role: "guest",
-          host: ticket.host, port: ticket.port, code: ticket.code,
-          opponentRating: ticket.opponentRating,
-          ratingDifference: ticket.ratingDifference
-        });
+        const body=await readJson(req);
+        const playerId=String(body.playerId||"").trim().slice(0,64);
+        const playerName=String(body.playerName||("Игрок-"+playerId.slice(0,5))).trim().slice(0,20)||"Игрок";
+        const mode=String(body.mode||"classic").trim().slice(0,32);
+        const rating=normalizeRating(body.rating??1000);
+        if(!playerId||!mode)return send(res,400,{error:"INVALID_QUEUE_DATA"});
+        const existing=[...tickets.values()].find(t=>t.playerId===playerId&&t.status==="waiting");
+        if(existing)return send(res,409,{error:"ALREADY_IN_QUEUE",ticket:existing.id});
+        const ticketId=crypto.randomUUID();
+        const ticket={id:ticketId,playerId,playerName,key:mode,status:"waiting",rating,createdAt:Date.now(),expiresAt:Date.now()+QUEUE_TTL_MS};
+        tickets.set(ticketId,ticket);
+        const queue=waiting.get(mode)||new Set();queue.add(ticketId);waiting.set(mode,queue);
+        const match=tryMatch(ticket);
+        if(match)return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
+        return send(res,201,{ticket:ticketId,status:"waiting",pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
       }
 
       const cancelMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)\/cancel$/);
@@ -251,19 +188,15 @@ export function createMatchmakingServer(options = {}) {
         return send(res, 200, { cancelled: true, status: "cancelled" });
       }
 
-      const ticketMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)$/);
-      if (req.method === "GET" && ticketMatch) {
-        const ticket = tickets.get(ticketMatch[1]);
-        if (!ticket) return send(res, 404, { error: "TICKET_EXPIRED" });
-        return send(res, 200, {
-          ticket: ticket.id, status: ticket.status,
-          ...(ticket.status === "matched" ? {
-            role: ticket.role, host: ticket.host, port: ticket.port, code: ticket.code,
-            opponentRating: ticket.opponentRating, ratingDifference: ticket.ratingDifference
-          } : {})
-        });
+      const queuePrefix="/matchmaking/queue/";
+      if(req.method==="GET"&&url.pathname.startsWith(queuePrefix)){
+        const ticketId=url.pathname.slice(queuePrefix.length);
+        const ticket=tickets.get(ticketId);
+        if(!ticket)return send(res,404,{error:"TICKET_EXPIRED"});
+        if(ticket.status==="matched")return send(res,200,{ticket:ticket.id,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
+        const preview=ticket.status==="waiting"?queuePreview(ticket):{players:[],queueCount:0,requiredPlayers:CLASSIC_MATCH_SIZE};
+        return send(res,200,{ticket:ticket.id,status:ticket.status,...preview});
       }
-
       return send(res, 404, { error: "NOT_FOUND" });
     } catch (error) {
       if (error.message === "BODY_TOO_LARGE") return send(res, 413, { error: "BODY_TOO_LARGE" });
