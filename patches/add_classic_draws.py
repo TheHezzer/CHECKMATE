@@ -103,7 +103,7 @@ replace_func("_handle_game_board_click", r'''func _handle_game_board_click(scree
         return
     var moving_team := current_team
     var is_castle: bool = kind == "K" and abs(col - from_col) == 2
-    var is_en_passant := kind == "P" and abs(col - from_col) == 1 and target_piece == null
+    var is_en_passant: bool = kind == "P" and abs(col - from_col) == 1 and target_piece == null
     var ep_victim: Node3D = _en_passant_victim(piece, col, row) if is_en_passant else null
     var captured := target_piece != null or ep_victim != null
     if target_piece != null:
