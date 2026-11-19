@@ -1,89 +1,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createMatchmakingServer } from "./server.js";
-
-async function withServer(fn) {
-  const server = createMatchmakingServer();
-  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
-  const address = server.address();
-  try { await fn("http://127.0.0.1:" + address.port); }
-  finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
-}
-
-async function queue(base, playerId, rating, mode = "classic", ip = "203.0.113.1") {
-  const response = await fetch(base + "/matchmaking/queue", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": ip },
-    body: JSON.stringify({ playerId, mode, port: 24567, rating })
-  });
-  return { status: response.status, data: await response.json() };
-}
-
-test("health endpoint reports service", async () => {
-  await withServer(async base => {
-    const response = await fetch(base + "/health");
-    assert.equal(response.status, 200);
-    assert.equal((await response.json()).ok, true);
-  });
-});
-
-test("private room can be created and joined once", async () => {
-  await withServer(async base => {
-    const created = await fetch(base + "/rooms", {
-      method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.8" },
-      body: JSON.stringify({ playerId: "host-1", port: 24567 })
-    });
-    assert.equal(created.status, 201);
-    const room = await created.json();
-    assert.match(room.code, /^[A-Z2-9]{6}$/);
-    assert.equal(room.host, "203.0.113.8");
-    const joined = await fetch(base + "/rooms/" + room.code + "/join", {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ playerId: "guest-1" })
-    });
-    assert.equal(joined.status, 200);
-    assert.equal((await joined.json()).joined, true);
-    const second = await fetch(base + "/rooms/" + room.code + "/join", {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ playerId: "guest-2" })
-    });
-    assert.equal(second.status, 409);
-  });
-});
-
-test("quick matchmaking pairs only players within the initial rating gap", async () => {
-  await withServer(async base => {
-    const first = await queue(base, "p1", 1000, "classic", "203.0.113.1");
-    assert.equal(first.data.status, "waiting");
-    const tooStrong = await queue(base, "p2", 1600, "classic", "203.0.113.2");
-    assert.equal(tooStrong.data.status, "waiting");
-    const close = await queue(base, "p3", 1080, "classic", "203.0.113.3");
-    assert.equal(close.data.status, "matched");
-    assert.equal(close.data.ratingDifference, 80);
-    const firstStatus = await fetch(base + "/matchmaking/queue/" + first.data.ticket).then(r => r.json());
-    assert.equal(firstStatus.status, "matched");
-    const strongStatus = await fetch(base + "/matchmaking/queue/" + tooStrong.data.ticket).then(r => r.json());
-    assert.equal(strongStatus.status, "waiting");
-  });
-});
-
-test("quick matchmaking never pairs different game modes", async () => {
-  await withServer(async base => {
-    const classic = await queue(base, "p1", 1000, "classic");
-    const city = await queue(base, "p2", 1000, "chess_city", "203.0.113.2");
-    assert.equal(classic.data.status, "waiting");
-    assert.equal(city.data.status, "waiting");
-  });
-});
-
-test("a player can cancel a waiting matchmaking ticket", async () => {
-  await withServer(async base => {
-    const waiting = await queue(base, "cancel-me", 1000, "cancel_test");
-    assert.equal(waiting.data.status, "waiting");
-    const cancelled = await fetch(base + "/matchmaking/queue/" + waiting.data.ticket + "/cancel", { method: "POST" });
-    assert.equal(cancelled.status, 200);
-    assert.equal((await cancelled.json()).status, "cancelled");
-    const status = await fetch(base + "/matchmaking/queue/" + waiting.data.ticket).then(r => r.json());
-    assert.equal(status.status, "cancelled");
-  });
-});
+async function withServer(fn){const s=createMatchmakingServer();await new Promise(r=>s.listen(0,"127.0.0.1",r));const a=s.address();try{await fn("http://127.0.0.1:"+a.port)}finally{s.closeAllConnections();await new Promise(r=>s.close(r))}}
+async function queue(base,id,rating,mode="classic"){const r=await fetch(base+"/matchmaking/queue",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:id,playerName:"Player_"+id,mode,rating})});return{status:r.status,data:await r.json()}}
+test("health endpoint reports service",async()=>withServer(async base=>{const r=await fetch(base+"/health");assert.equal(r.status,200);assert.equal((await r.json()).ok,true)}));
+test("manual room creation is disabled",async()=>withServer(async base=>{const r=await fetch(base+"/rooms",{method:"POST",headers:{"content-type":"application/json"},body:"{}"});assert.equal(r.status,404)}));
+test("classic matchmaking waits for 32 and creates balanced 16v16 teams",async()=>withServer(async base=>{
+ let first;for(let i=0;i<32;i++){const r=await queue(base,"p"+i,1000+i*2);if(i===0)first=r;if(i<31)assert.equal(r.data.status,"waiting");else assert.equal(r.data.status,"matched")}
+ const s=await fetch(base+"/matchmaking/queue/"+first.data.ticket).then(r=>r.json());assert.equal(s.status,"matched");assert.equal(s.players.length,32);
+ const w=s.players.filter(p=>p.team==="white"),b=s.players.filter(p=>p.team==="black");assert.equal(w.length,16);assert.equal(b.length,16);assert.equal(new Set(s.players.map(p=>p.playerId)).size,32);
+ assert.ok(Math.abs(w.reduce((a,p)=>a+p.rating,0)-b.reduce((a,p)=>a+p.rating,0))<=32);
+}));
+test("matchmaking never mixes game modes",async()=>withServer(async base=>{
+ let cityFirst;for(let i=0;i<31;i++){const c=await queue(base,"c"+i,1000+i,"classic");const s=await queue(base,"s"+i,1000+i,"chess_city");if(i===0)cityFirst=s;assert.equal(c.data.status,"waiting");assert.equal(s.data.status,"waiting")}
+ assert.equal((await queue(base,"c-last",1000,"classic")).data.status,"matched");
+ assert.equal((await fetch(base+"/matchmaking/queue/"+cityFirst.data.ticket).then(r=>r.json())).status,"waiting");
+ assert.equal((await queue(base,"s-last",1000,"chess_city")).data.status,"matched");
+}));
+test("waiting roster returns player nicknames and ratings",async()=>withServer(async base=>{
+ const a=await queue(base,"alpha",1000),b=await queue(base,"bravo",1070);const s=await fetch(base+"/matchmaking/queue/"+a.data.ticket).then(r=>r.json());assert.equal(s.players.length,2);assert.ok(s.players.some(p=>p.name==="Player_alpha"));assert.ok(s.players.some(p=>p.rating===1070));assert.equal(s.requiredPlayers,32);
+}));
+test("a player can cancel a waiting ticket",async()=>withServer(async base=>{
+ const w=await queue(base,"cancel-me",1000,"cancel_test");const c=await fetch(base+"/matchmaking/queue/"+w.data.ticket+"/cancel",{method:"POST"});assert.equal(c.status,200);assert.equal((await c.json()).status,"cancelled");assert.equal((await fetch(base+"/matchmaking/queue/"+w.data.ticket).then(r=>r.json())).status,"cancelled");
+}));
