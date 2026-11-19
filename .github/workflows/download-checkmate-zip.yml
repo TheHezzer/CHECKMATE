@@ -1,4 +1,4 @@
-name: Build CHECKMATE updated ZIP
+name: Build CHECKMATE updated ZIP # classic rules validation
 
 on:
   workflow_dispatch:
