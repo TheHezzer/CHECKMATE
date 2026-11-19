@@ -166,6 +166,6 @@ func _refresh_team_turn_label() -> void:
         var team_name := "БЕЛЫЕ" if current_team == "white" else "ЧЁРНЫЕ"
         team_turn_label.text = "ХОД: " + team_name + " • ИГРОК " + str(active_teammate) + "/4"
 """
-source += functions
+source += "\n" + "\n".join(("\t" * ((len(line) - len(line.lstrip(" "))) // 4) + line.lstrip(" ")) if line.startswith("    ") else line for line in functions.splitlines())
 main_path.write_text(source, encoding="utf-8")
 print("Classic local turn and movement prototype added.")
