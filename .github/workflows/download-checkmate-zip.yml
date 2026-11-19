@@ -12,6 +12,7 @@ on:
     paths:
       - '.github/workflows/download-checkmate-zip.yml'
       - 'patches/**'
+      - 'server/**'
       - '*.zip'
 
 permissions:
@@ -23,6 +24,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Test matchmaking service
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test --prefix server
 
       - name: Extract and patch project
         shell: bash
