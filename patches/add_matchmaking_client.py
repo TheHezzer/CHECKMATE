@@ -9,7 +9,11 @@ def replace_func(name: str, replacement: str) -> None:
     marker = "func " + name + "("
     start = source.find(marker)
     if start < 0:
-        raise SystemExit("Function not found: " + name)
+        insert_at = source.find("\nfunc _on_online_peer_connected(")
+        if insert_at < 0:
+            raise SystemExit("Cannot insert new function: " + name)
+        source = source[:insert_at] + "\n" + replacement.rstrip() + "\n" + source[insert_at:]
+        return
     end = source.find("\nfunc ", start + len(marker))
     if end < 0:
         end = len(source)
