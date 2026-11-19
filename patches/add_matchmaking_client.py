@@ -35,7 +35,7 @@ if "var online_server_url_input:" not in source:
 if "const DEFAULT_MATCHMAKING_RATING :=" not in source:
     if anchor not in source:
         raise SystemExit("Online rating anchor missing")
-    source = source.replace(anchor, anchor + "const DEFAULT_MATCHMAKING_RATING := 1000\\n", 1)
+    source = source.replace(anchor, anchor + "const DEFAULT_MATCHMAKING_RATING := 1000\n", 1)
 
 replace_func("_build_online_panel_screen", r'''func _build_online_panel_screen() -> void:
     online_panel = Control.new()
