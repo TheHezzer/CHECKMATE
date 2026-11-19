@@ -6,6 +6,8 @@ import { createAccountService } from "./accounts.js";
 const PORT = Number(process.env.PORT || 8080);
 const QUEUE_TTL_MS = 10 * 60 * 1000;
 const ALLOWED_SECOND_PIECES = new Set(["Ладья", "Конь", "Слон", "Ферзь", "Король"]);
+const PIECE_TEAM_SLOTS = { "Ладья": 2, "Конь": 2, "Слон": 2, "Ферзь": 1, "Король": 1 };
+const PIECE_MATCH_SLOTS = Object.fromEntries(Object.entries(PIECE_TEAM_SLOTS).map(([piece, count]) => [piece, count * 2]));
 const INITIAL_RATING_GAP = 100;
 const RATING_GAP_STEP = 50;
 const RATING_GAP_STEP_MS = 15 * 1000;
@@ -77,6 +79,21 @@ function allowedRatingGap(waitMs) {
 }
 
 function balanceTeams(candidates) {
+  if (candidates.length === CLASSIC_MATCH_SIZE) {
+    const teams = { white: [], black: [] };
+    const sums = { white: 0, black: 0 };
+    for (const [piece, perTeam] of Object.entries(PIECE_TEAM_SLOTS)) {
+      const pool = candidates.filter(p => p.piece === piece).sort((a,b) => b.rating-a.rating || a.createdAt-b.createdAt);
+      if (pool.length !== perTeam * 2) return [];
+      for (const player of pool) {
+        const team = teams.white.length < CLASSIC_TEAM_SIZE && (teams.black.length >= CLASSIC_TEAM_SIZE || teams.white.length < teams.black.length || (teams.white.length === teams.black.length && sums.white <= sums.black)) ? "white" : "black";
+        teams[team].push(player);
+        sums[team] += player.rating;
+      }
+    }
+    if (teams.white.length !== CLASSIC_TEAM_SIZE || teams.black.length !== CLASSIC_TEAM_SIZE) return [];
+    return [...teams.white.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,secondPiece:p.piece,pieces:["Пешка",p.piece],team:"white",slot})),...teams.black.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,secondPiece:p.piece,pieces:["Пешка",p.piece],team:"black",slot}))];
+  }
   const sorted=[...candidates].sort((a,b)=>b.rating-a.rating||a.createdAt-b.createdAt);
   const teams={white:[],black:[]},sums={white:0,black:0};
   for(const p of sorted){
@@ -90,23 +107,37 @@ function balanceTeams(candidates) {
   }
   return [...teams.white.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,secondPiece:p.piece,pieces:["Пешка",p.piece],team:"white",slot})),...teams.black.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,secondPiece:p.piece,pieces:["Пешка",p.piece],team:"black",slot}))];
 }
+function pieceCapacity(mode) {
+  const queue = waiting.get(mode);
+  const ticketsInQueue = queue ? [...queue].map(id => tickets.get(id)).filter(p => p && ["waiting","waiting_piece_slot"].includes(p.status)) : [];
+  return Object.fromEntries(Object.entries(PIECE_MATCH_SLOTS).map(([piece, capacity]) => {
+    const selected = ticketsInQueue.filter(p => p.piece === piece).length;
+    return [piece, { selected, capacity, available: Math.max(0, capacity - selected), full: selected >= capacity }];
+  }));
+}
+
 function eligiblePlayers(ticket,now=Date.now()){
   const queue=waiting.get(ticket.key);if(!queue)return[];
-  return [...queue].map(id=>tickets.get(id)).filter(p=>p&&p.status==="waiting"&&p.playerId!==ticket.playerId)
+  return [...queue].map(id=>tickets.get(id)).filter(p=>p&&["waiting","waiting_piece_slot"].includes(p.status)&&p.playerId!==ticket.playerId)
     .filter(p=>Math.abs(p.rating-ticket.rating)<=Math.max(allowedRatingGap(now-p.createdAt),allowedRatingGap(now-ticket.createdAt)))
     .sort((a,b)=>Math.abs(a.rating-ticket.rating)-Math.abs(b.rating-ticket.rating)||a.createdAt-b.createdAt);
 }
 function queuePreview(ticket,now=Date.now()){
   const queue=waiting.get(ticket.key);
-  const count=queue?[...queue].map(id=>tickets.get(id)).filter(p=>p&&p.status==="waiting").length:0;
-  return {players:balanceTeams([ticket,...eligiblePlayers(ticket,now)].slice(0,CLASSIC_MATCH_SIZE)),queueCount:count,requiredPlayers:CLASSIC_MATCH_SIZE,allowedRatingGap:allowedRatingGap(now-ticket.createdAt)};
+  const count=queue?[...queue].map(id=>tickets.get(id)).filter(p=>p&&["waiting","waiting_piece_slot"].includes(p.status)).length:0;
+  return {players:balanceTeams([ticket,...eligiblePlayers(ticket,now)].slice(0,CLASSIC_MATCH_SIZE)),queueCount:count,requiredPlayers:CLASSIC_MATCH_SIZE,allowedRatingGap:allowedRatingGap(now-ticket.createdAt),pieceCapacity:pieceCapacity(ticket.key)};
 }
 function composeClassicRoster(candidates, referenceTicket) {
   if (candidates.length < CLASSIC_MATCH_SIZE) return null;
-  const selected = [...candidates]
-    .sort((a,b) => Math.abs(a.rating-referenceTicket.rating)-Math.abs(b.rating-referenceTicket.rating) || a.createdAt-b.createdAt)
-    .slice(0, CLASSIC_MATCH_SIZE);
-  return balanceTeams(selected);
+  const selected = [];
+  for (const [piece, required] of Object.entries(PIECE_MATCH_SLOTS)) {
+    const pool = candidates.filter(p => p.piece === piece)
+      .sort((a,b) => Math.abs(a.rating-referenceTicket.rating)-Math.abs(b.rating-referenceTicket.rating) || a.createdAt-b.createdAt);
+    if (pool.length < required) return null;
+    selected.push(...pool.slice(0, required));
+  }
+  if (selected.length !== CLASSIC_MATCH_SIZE) return null;
+  return selected;
 }
 
 function tryMatch(ticket, now=Date.now()) {
@@ -179,8 +210,12 @@ export function createMatchmakingServer(options = {}) {
         tickets.set(ticketId,ticket);
         const queue=waiting.get(mode)||new Set();queue.add(ticketId);waiting.set(mode,queue);
         const match=tryMatch(ticket);
-        if(match)return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
-        return send(res,201,{ticket:ticketId,status:"waiting",pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
+        const match=tryMatch(ticket);
+        if(ticket.status==="matched")return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
+        const slots=pieceCapacity(mode);
+        const status=slots[piece].selected>slots[piece].capacity?"waiting_piece_slot":"waiting";
+        ticket.status=status;
+        return send(res,201,{ticket:ticketId,status,pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
       }
 
       const cancelMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)\/cancel$/);
