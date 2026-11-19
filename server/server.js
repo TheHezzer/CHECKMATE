@@ -224,7 +224,7 @@ export function createMatchmakingServer(options = {}) {
         return send(res, 200, { votes: match.firstMoveVotes, votesCast: match.votedPlayers.size, votesRequired: CLASSIC_MATCH_SIZE, resolved: match.firstMoveResolved, startingTeam: match.firstMoveTeam, startingPlayerId: match.firstMovePlayerId });
       }
       if (firstMoveVoteId && req.method === "POST") {
-        const match = matches.get(firstMoveVote[1]);
+        const match = matches.get(firstMoveVoteId);
         if (!match) return send(res, 404, { error: "MATCH_NOT_FOUND" });
         const body = await readJson(req);
         const playerId = String(body.playerId || "").trim();
