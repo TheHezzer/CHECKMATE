@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v24 — persistent player rating (verified)
+name: Build CHECKMATE classic v25 — persistent accounts and leaderboard (verified)
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
@@ -86,23 +86,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v24.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v24.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v25.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v25.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v24.zip" builds/CHECKMATE_classic_v24.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v25.zip" builds/CHECKMATE_classic_v25.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v24 build"
+          commit_message: "Save CHECKMATE classic v25 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v24.zip
+          file_pattern: builds/CHECKMATE_classic_v25.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v24
-          path: CHECKMATE_classic_v24.zip
+          name: CHECKMATE-classic-v25
+          path: CHECKMATE_classic_v25.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
