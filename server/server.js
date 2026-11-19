@@ -209,8 +209,7 @@ export function createMatchmakingServer(options = {}) {
         const ticket={id:ticketId,playerId,playerName,piece,key:mode,status:"waiting",rating,createdAt:Date.now(),expiresAt:Date.now()+QUEUE_TTL_MS};
         tickets.set(ticketId,ticket);
         const queue=waiting.get(mode)||new Set();queue.add(ticketId);waiting.set(mode,queue);
-        const match=tryMatch(ticket);
-        const match=tryMatch(ticket);
+        tryMatch(ticket);
         if(ticket.status==="matched")return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
         const slots=pieceCapacity(mode);
         const status=slots[piece].selected>slots[piece].capacity?"waiting_piece_slot":"waiting";
@@ -219,12 +218,12 @@ export function createMatchmakingServer(options = {}) {
       }
 
       const firstMoveVoteId = url.pathname.startsWith("/matches/") && url.pathname.endsWith("/first-move-vote") ? url.pathname.slice(9, -16) : "";
-      if (firstMoveVote && req.method === "GET") {
+      if (firstMoveVoteId && req.method === "GET") {
         const match = matches.get(firstMoveVoteId);
         if (!match) return send(res, 404, { error: "MATCH_NOT_FOUND" });
         return send(res, 200, { votes: match.firstMoveVotes, votesCast: match.votedPlayers.size, votesRequired: CLASSIC_MATCH_SIZE, resolved: match.firstMoveResolved, startingTeam: match.firstMoveTeam, startingPlayerId: match.firstMovePlayerId });
       }
-      if (firstMoveVote && req.method === "POST") {
+      if (firstMoveVoteId && req.method === "POST") {
         const match = matches.get(firstMoveVote[1]);
         if (!match) return send(res, 404, { error: "MATCH_NOT_FOUND" });
         const body = await readJson(req);
