@@ -43,21 +43,21 @@ replace_once(
 \txp.value = int(balances["xp"])''', "profile xp")
 
 replace_once(
-'''var gambits := _ornate_button(menu_panel, "✥  ГАМБИТЫ\n12 750", 0.285, 0.035, 0.425, 0.125, 14, "nav")
+'''var gambits := _ornate_button(menu_panel, "✥  ГАМБИТЫ\\n12 750", 0.285, 0.035, 0.425, 0.125, 14, "nav")
 \tgambits.pressed.connect(_show_notice.bind("Гамбиты — игровая валюта за матчи и задания"))
-\tvar chessmatites := _ornate_button(menu_panel, "◆  ШАХМАТИТЫ\n620   +", 0.432, 0.035, 0.572, 0.125, 14, "nav")
+\tvar chessmatites := _ornate_button(menu_panel, "◆  ШАХМАТИТЫ\\n620   +", 0.432, 0.035, 0.572, 0.125, 14, "nav")
 ''',
-'''var gambits := _ornate_button(menu_panel, "◈  ЗЛОТЫЕ\n%d" % int(balances["zloty"]), 0.285, 0.035, 0.425, 0.125, 14, "nav")
+'''var gambits := _ornate_button(menu_panel, "◈  ЗЛОТЫЕ\\n%d" % int(balances["zloty"]), 0.285, 0.035, 0.425, 0.125, 14, "nav")
 \tgambits.name = "ZlotyCounter"
 \tgambits.pressed.connect(_show_notice.bind("Злотые — игровая валюта. Фигуры покупаются перед каждой партией."))
-\tvar chessmatites := _ornate_button(menu_panel, "◆  ШАХМАТИТЫ\n%d   +" % int(balances["chessmatites"]), 0.432, 0.035, 0.572, 0.125, 14, "nav")
+\tvar chessmatites := _ornate_button(menu_panel, "◆  ШАХМАТИТЫ\\n%d   +" % int(balances["chessmatites"]), 0.432, 0.035, 0.572, 0.125, 14, "nav")
 \tchessmatites.name = "ChessmatitesCounter"
 ''', "zloty and chessmatite counters")
 
 replace_once(
-'''var experience := _ornate_button(menu_panel, "★  ОПЫТ\n850 / 2000", 0.579, 0.035, 0.715, 0.125, 14, "nav")
+'''var experience := _ornate_button(menu_panel, "★  ОПЫТ\\n850 / 2000", 0.579, 0.035, 0.715, 0.125, 14, "nav")
 \texperience.pressed.connect(_show_notice.bind("Опыт повышает уровень игрока"))''',
-'''var experience := _ornate_button(menu_panel, "★  XP\n%d" % int(balances["xp"]), 0.579, 0.035, 0.715, 0.125, 14, "nav")
+'''var experience := _ornate_button(menu_panel, "★  XP\\n%d" % int(balances["xp"]), 0.579, 0.035, 0.715, 0.125, 14, "nav")
 \texperience.name = "XPCounter"
 \texperience.pressed.connect(_show_notice.bind("XP — расходуемый ресурс для открытия фигур и покупки постоянных скинов."))''', "xp counter")
 
@@ -71,14 +71,14 @@ replace_once(
 \tvar symbols := ["♞", "♟", "♛", "⚔"]
 \tfor i in range(modes.size()):
 \t\tvar x := 0.185 + float(i) * 0.158
-\t\tvar b := _ornate_button(menu_panel, symbols[i] + "\n" + modes[i] + "\n" + subtitles[i], x, 0.735, x + 0.150, 0.885, 17, "card")
+\t\tvar b := _ornate_button(menu_panel, symbols[i] + "\\n" + modes[i] + "\\n" + subtitles[i], x, 0.735, x + 0.150, 0.885, 17, "card")
 \t\tb.pressed.connect(_on_mode_pressed.bind(modes[i]))''',
 '''var modes := ["Классика", "Командное голосование", "Несколько фигур"]
 \tvar subtitles := ["Командная партия", "Голосование за ход", "Несколько фигур на игрока"]
 \tvar symbols := ["♞", "♟", "♛"]
 \tfor i in range(modes.size()):
 \t\tvar x := 0.235 + float(i) * 0.185
-\t\tvar b := _ornate_button(menu_panel, symbols[i] + "\n" + modes[i] + "\n" + subtitles[i], x, 0.735, x + 0.175, 0.885, 15, "card")
+\t\tvar b := _ornate_button(menu_panel, symbols[i] + "\\n" + modes[i] + "\\n" + subtitles[i], x, 0.735, x + 0.175, 0.885, 15, "card")
 \t\tb.pressed.connect(_on_mode_pressed.bind(modes[i]))''', "party modes")
 
 replace_once(
@@ -121,7 +121,7 @@ func _build_preparation_screen() -> void:
 \t\tprep_piece_buttons.append(btn)
 \tvar info := _panel(frame, 0.35, 0.24, 0.96, 0.72)
 \t_add_label(info, "ПРАВИЛА ПОКУПКИ", Vector2(18, 14), Vector2(400, 28), 17, PALE_GOLD)
-\t_add_label(info, "Открытие фигуры: XP списывается один раз.\nПокупка перед матчем: злотые списываются за каждую партию.\nВ Шахматном городе открытые фигуры не расходуются.", Vector2(18, 54), Vector2(540, 100), 13, Color(0.84, 0.79, 0.70))
+\t_add_label(info, "Открытие фигуры: XP списывается один раз.\\nПокупка перед матчем: злотые списываются за каждую партию.\\nВ Шахматном городе открытые фигуры не расходуются.", Vector2(18, 54), Vector2(540, 100), 13, Color(0.84, 0.79, 0.70))
 \tvar selected_label := _add_label(info, "ВЫБРАНА: ПЕШКА", Vector2(18, 170), Vector2(500, 30), 18, PALE_GOLD)
 \tselected_label.name = "PrepSelectedLabel"
 \tprep_status = _add_label(info, "Пешка доступна бесплатно.", Vector2(18, 210), Vector2(540, 55), 13, Color(0.86, 0.81, 0.72))
@@ -244,11 +244,11 @@ func _refresh_wallet_labels() -> void:
 \tvar chessmatites := menu_panel.find_child("ChessmatitesCounter", true, false) as Button
 \tvar xp := menu_panel.find_child("XPCounter", true, false) as Button
 \tif zloty:
-\t\tzloty.text = "◈  ЗЛОТЫЕ\n%d" % int(balances["zloty"])
+\t\tzloty.text = "◈  ЗЛОТЫЕ\\n%d" % int(balances["zloty"])
 \tif chessmatites:
-\t\tchessmatites.text = "◆  ШАХМАТИТЫ\n%d   +" % int(balances["chessmatites"])
+\t\tchessmatites.text = "◆  ШАХМАТИТЫ\\n%d   +" % int(balances["chessmatites"])
 \tif xp:
-\t\txp.text = "★  XP\n%d" % int(balances["xp"])
+\t\txp.text = "★  XP\\n%d" % int(balances["xp"])
 '''
 script_path.write_text(s, encoding="utf-8")
 
