@@ -78,7 +78,7 @@ test("quick matchmaking never pairs different game modes", async () => {
 
 test("a player can cancel a waiting matchmaking ticket", async () => {
   await withServer(async base => {
-    const waiting = await queue(base, "cancel-me", 1000);
+    const waiting = await queue(base, "cancel-me", 1000, "cancel_test");
     assert.equal(waiting.data.status, "waiting");
     const cancelled = await fetch(base + "/matchmaking/queue/" + waiting.data.ticket + "/cancel", { method: "POST" });
     assert.equal(cancelled.status, 200);
