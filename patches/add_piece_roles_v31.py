@@ -21,9 +21,18 @@ def remove_func(name):
     else:
         source = source[:start] + source[end + 1:]
 
-replace_once('"mode": "classic",\n        "rating": competitive_rating',
-             '"mode": "classic",\n        "piece": selected_match_piece,\n        "rating": competitive_rating',
-             "send selected chess piece to matchmaking")
+match_start = source.find("func _start_quick_match(")
+match_end = source.find("\\nfunc ", match_start + 1)
+if match_start < 0 or match_end < 0:
+    raise SystemExit("Could not locate quick-match function")
+quick_match = source[match_start:match_end]
+old_payload = '"mode": "classic",\\n        "rating": competitive_rating'
+new_payload = '"mode": "classic",\\n        "piece": selected_match_piece,\\n        "rating": competitive_rating'
+if old_payload not in quick_match:
+    raise SystemExit("Quick-match piece payload anchor missing")
+quick_match = quick_match.replace(old_payload, new_payload, 1)
+source = source[:match_start] + quick_match + source[match_end:]
+
 replace_once('var line := "%s   •   %d" % [str(player.get("name", "Игрок")), int(player.get("rating", 1000))]',
              'var line := "%s   •   %s   •   %d" % [str(player.get("name", "Игрок")), str(player.get("piece", "Пешка")), int(player.get("rating", 1000))]',
              "show chosen piece beside player nickname and rating")
