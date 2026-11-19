@@ -103,7 +103,7 @@ func _update_queue_roster(players: Array) -> void:
     if queue_black_roster_label:
         queue_black_roster_label.text = "\n".join(black)
 
-func _open_online_panel() -> void:
+func _open_matchmaking_queue() -> void:
     if online_panel == null:
         _build_online_panel_screen()
     online_panel.visible = true
