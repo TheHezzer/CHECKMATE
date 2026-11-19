@@ -21,7 +21,8 @@ replace_between(
 '''    if target_piece != null and str(target_piece.get_meta("team")) == current_team:
         selected_game_piece = target_piece
         status_label.text = "Выбрана фигура: " + str(target_piece.get_meta("kind")) + "."
-        return''',
+        return
+''',
 "piece selection and capture"
 )
 
@@ -43,7 +44,8 @@ replace_between(
         selected_game_piece.set_meta("kind", "Q")
         promoted = true
     selected_game_piece = null
-    status_label.text = "Пешка превращена в ферзя." if promoted else "Ход выполнен. Очередь перешла другой команде."''',
+    status_label.text = "Пешка превращена в ферзя." if promoted else "Ход выполнен. Очередь перешла другой команде."
+''',
 "move capture and promotion"
 )
 
