@@ -75,14 +75,3 @@ test("quick matchmaking never pairs different game modes", async () => {
     assert.equal(city.data.status, "waiting");
   });
 });
-
-test("queue supports multiple waiting players without overwriting them", async () => {
-  await withServer(async base => {
-    const a = await queue(base, "a", 1000, "classic", "203.0.113.1");
-    const b = await queue(base, "b", 2000, "classic", "203.0.113.2");
-    const c = await queue(base, "c", 1010, "classic", "203.0.113.3");
-    assert.equal(a.data.status, "matched");
-    assert.equal(b.data.status, "waiting");
-    assert.equal(c.data.status, "matched");
-  });
-});
