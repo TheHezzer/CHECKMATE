@@ -21,7 +21,7 @@ test("matchmaking never mixes game modes",async()=>withServer(async base=>{
  const cityStatus=await fetch(base+"/matchmaking/queue/"+cityFirst.data.ticket).then(r=>r.json());assert.equal(cityStatus.status,"waiting");
 }));
 test("waiting roster returns player nicknames, ratings and chosen piece",async()=>withServer(async base=>{
- const a=await queue(base,"alpha",1000),b=await queue(base,"bravo",1070);const s=await fetch(base+"/matchmaking/queue/"+a.data.ticket).then(r=>r.json());assert.equal(s.players.length,2);assert.ok(s.players.some(p=>p.name==="Player_alpha"));assert.ok(s.players.some(p=>p.rating===1070));assert.ok(s.players.every(p=>p.piece==="Пешка"));assert.equal(s.requiredPlayers,32);
+ const a=await queue(base,"alpha",1000,"Пешка","roster_test"),b=await queue(base,"bravo",1070,"Пешка","roster_test");const s=await fetch(base+"/matchmaking/queue/"+a.data.ticket).then(r=>r.json());assert.equal(s.players.length,2);assert.ok(s.players.some(p=>p.name==="Player_alpha"));assert.ok(s.players.some(p=>p.rating===1070));assert.ok(s.players.every(p=>p.piece==="Пешка"));assert.equal(s.requiredPlayers,32);
 }));
 test("invalid chess piece is rejected",async()=>withServer(async base=>{const r=await queue(base,"bad-piece",1000,"Дракон");assert.equal(r.status,400)}));
 test("a player can cancel a waiting ticket",async()=>withServer(async base=>{
