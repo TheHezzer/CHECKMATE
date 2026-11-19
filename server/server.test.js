@@ -28,8 +28,8 @@ test("classic matchmaking creates 8v8 teams with a pawn and selected second piec
  assert.deepEqual(Object.fromEntries(["Ладья","Конь","Слон","Ферзь","Король"].map(piece=>[piece,black.filter(p=>p.secondPiece===piece).length])),{"Ладья":2,"Конь":2,"Слон":2,"Ферзь":1,"Король":1});
 }));
 test("matchmaking never mixes game modes",async()=>withServer(async base=>{
- let cityFirst;for(let i=0;i<7;i++){const c=await queue(base,"c"+i,1000,"Конь","classic");const s=await queue(base,"s"+i,1000,"Конь","chess_city");if(i===0)cityFirst=s;assert.equal(c.data.status,"waiting");assert.equal(s.data.status,"waiting")}
- const cStatus=await fetch(base+"/matchmaking/queue/"+(await queue(base,"c-last",1000,"Конь","classic")).data.ticket).then(r=>r.json());assert.equal(cStatus.status,"waiting");
+ let cityFirst;for(let i=0;i<7;i++){const c=await queue(base,"c"+i,1000,"Конь","classic");const s=await queue(base,"s"+i,1000,"Конь","chess_city");if(i===0)cityFirst=s;assert.equal(c.data.status,i<4?"waiting":"waiting_piece_slot");assert.equal(s.data.status,i<4?"waiting":"waiting_piece_slot")}
+ const cStatus=await fetch(base+"/matchmaking/queue/"+(await queue(base,"c-last",1000,"Конь","classic")).data.ticket).then(r=>r.json());assert.equal(cStatus.status,"waiting_piece_slot");
  const cityStatus=await fetch(base+"/matchmaking/queue/"+cityFirst.data.ticket).then(r=>r.json());assert.equal(cityStatus.status,"waiting");
 }));
 test("waiting roster returns player nicknames, ratings and chosen piece",async()=>withServer(async base=>{
