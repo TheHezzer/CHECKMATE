@@ -94,7 +94,7 @@ function tryMatch(ticket, now = Date.now()) {
   let bestDifference = Infinity;
   for (const id of queue) {
     const candidate = tickets.get(id);
-    if (!candidate || candidate.status !== "waiting" || candidate.playerId === ticket.playerId) continue;
+    if (!candidate || candidate.id === ticket.id || candidate.status !== "waiting" || candidate.playerId === ticket.playerId) continue;
     const difference = Math.abs(candidate.rating - ticket.rating);
     const candidateGap = allowedRatingGap(now - candidate.createdAt);
     const ticketGap = allowedRatingGap(now - ticket.createdAt);
@@ -107,6 +107,7 @@ function tryMatch(ticket, now = Date.now()) {
   if (!best) return null;
 
   queue.delete(best.id);
+  queue.delete(ticket.id);
   if (queue.size === 0) waiting.delete(ticket.key);
   const room = createRoom({
     hostId: best.playerId,
@@ -191,11 +192,10 @@ export function createMatchmakingServer() {
         };
         tickets.set(ticketId, ticket);
         const queue = waiting.get(mode) || new Set();
+        queue.add(ticketId);
         waiting.set(mode, queue);
         const room = tryMatch(ticket);
         if (!room) {
-          queue.add(ticketId);
-          waiting.set(mode, queue);
           return send(res, 201, {
             ticket: ticketId, status: "waiting", pollAfterMs: 1500,
             rating, initialRatingGap: INITIAL_RATING_GAP,
