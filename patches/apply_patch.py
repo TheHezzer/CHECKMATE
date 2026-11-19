@@ -115,7 +115,7 @@ func _build_preparation_screen() -> void:
 \tvar pieces := ["Пешка", "Конь", "Слон", "Ладья", "Ферзь"]
 \tfor i in range(pieces.size()):
 \t\tvar y := 0.245 + float(i) * 0.112
-\t\tvar piece := pieces[i]
+\t\tvar piece: String = pieces[i]
 \t\tvar btn := _ornate_button(frame, piece.to_upper(), 0.035, y, 0.30, y + 0.095, 15, "card")
 \t\tbtn.pressed.connect(_select_preparation_piece.bind(piece))
 \t\tprep_piece_buttons.append(btn)
