@@ -237,12 +237,12 @@ replace_func("_start_quick_match", r'''func _start_quick_match() -> void:
 # Remove the legacy Online entry point entirely; the preparation confirmation opens the queue screen.
 source = source.replace("_open_online_panel()", "_open_matchmaking_queue()")
 import re
-while re.search(r"(?m)^func _open_online_panel\\(", source):
-    match = re.search(r"(?m)^func _open_online_panel\\([^\\n]*\\n", source)
+while re.search(r"(?m)^func _open_online_panel\(", source):
+    match = re.search(r"(?m)^func _open_online_panel\([^\n]*\n", source)
     if not match:
         break
     start = match.start()
-    end = source.find("\\nfunc ", match.end())
+    end = source.find("\nfunc ", match.end())
     if end < 0:
         source = source[:start]
     else:
