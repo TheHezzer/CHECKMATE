@@ -104,6 +104,6 @@ func _close_mode_selection() -> void:
         mode_selection_panel.visible = false
     menu_panel.visible = true
 '''
-source += "\\n" + "\\n".join(("\\t" * ((len(line) - len(line.lstrip(" "))) // 4) + line.lstrip(" ")) if line.startswith("    ") else line for line in mode_functions.splitlines())
+source += "\n" + "\n".join(("\\t" * ((len(line) - len(line.lstrip(" "))) // 4) + line.lstrip(" ")) if line.startswith("    ") else line for line in mode_functions.splitlines())
 main_path.write_text(source, encoding="utf-8")
 print("Mode selection screen patch applied.")
