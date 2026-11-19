@@ -103,7 +103,7 @@ replace_func("_create_private_room", r'''func _create_private_room() -> void:
         "playerId": online_player_id,
         "port": online_port,
         "mode": "classic",
-        "rating": 0
+        "rating": DEFAULT_MATCHMAKING_RATING
     })''')
 
 replace_func("_host_online_room", r'''func _host_online_room() -> void:
@@ -142,7 +142,7 @@ replace_func("_start_quick_match", r'''func _start_quick_match() -> void:
         "playerId": online_player_id,
         "port": online_port,
         "mode": "classic",
-        "rating": 0
+        "rating": DEFAULT_MATCHMAKING_RATING
     })''')
 
 # Replace the existing direct-IP join function, retaining it as a manual fallback.
