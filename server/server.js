@@ -236,6 +236,21 @@ export function createMatchmakingServer(options = {}) {
         });
       }
 
+      const cancelMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)\/cancel$/);
+      if (req.method === "POST" && cancelMatch) {
+        const ticket = tickets.get(cancelMatch[1]);
+        if (!ticket) return send(res, 404, { error: "TICKET_EXPIRED" });
+        if (ticket.status !== "waiting") return send(res, 409, { error: "QUEUE_NOT_WAITING" });
+        const queue = waiting.get(ticket.key);
+        if (queue) {
+          queue.delete(ticket.id);
+          if (queue.size === 0) waiting.delete(ticket.key);
+        }
+        ticket.status = "cancelled";
+        ticket.expiresAt = Date.now() + QUEUE_TTL_MS;
+        return send(res, 200, { cancelled: true, status: "cancelled" });
+      }
+
       const ticketMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)$/);
       if (req.method === "GET" && ticketMatch) {
         const ticket = tickets.get(ticketMatch[1]);
