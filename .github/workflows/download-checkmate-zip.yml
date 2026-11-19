@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v23 — matchmaking and private rooms
+name: Build CHECKMATE classic v23 — rating-balanced matchmaking
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
