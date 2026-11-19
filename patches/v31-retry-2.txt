@@ -1,0 +1,1 @@
+Retry v31 after ensuring selected chess piece is sent.
