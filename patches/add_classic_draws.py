@@ -258,9 +258,13 @@ func _remember_position() -> void:
     for piece in game_piece_nodes:
         if not is_instance_valid(piece):
             continue
-        cells.append("%s%s%d%d" % [str(piece.get_meta("team")).substr(0, 1), str(piece.get_meta("kind")), int(piece.get_meta("col")), int(piece.get_meta("row"))])
+        var moved_flag := "1" if bool(piece.get_meta("has_moved", false)) and str(piece.get_meta("kind")) in ["K", "R"] else "0"
+        cells.append("%s%s%d%d%s" % [str(piece.get_meta("team")).substr(0, 1), str(piece.get_meta("kind")), int(piece.get_meta("col")), int(piece.get_meta("row")), moved_flag])
     cells.sort()
-    var key := current_team + "|" + "|".join(cells)
+    var ep_flag := "none"
+    if bool(last_move.get("double_pawn", false)) and str(last_move.get("team", "")) != current_team:
+        ep_flag = "%d:%d" % [int(last_move.get("to_col", -1)), int(last_move.get("to_row", -1))]
+    var key := current_team + "|" + ep_flag + "|" + "|".join(cells)
     position_counts[key] = int(position_counts.get(key, 0)) + 1
 
 func _is_insufficient_material() -> bool:
