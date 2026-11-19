@@ -75,3 +75,15 @@ test("quick matchmaking never pairs different game modes", async () => {
     assert.equal(city.data.status, "waiting");
   });
 });
+
+test("a player can cancel a waiting matchmaking ticket", async () => {
+  await withServer(async base => {
+    const waiting = await queue(base, "cancel-me", 1000);
+    assert.equal(waiting.data.status, "waiting");
+    const cancelled = await fetch(base + "/matchmaking/queue/" + waiting.data.ticket + "/cancel", { method: "POST" });
+    assert.equal(cancelled.status, 200);
+    assert.equal((await cancelled.json()).status, "cancelled");
+    const status = await fetch(base + "/matchmaking/queue/" + waiting.data.ticket).then(r => r.json());
+    assert.equal(status.status, "cancelled");
+  });
+});
