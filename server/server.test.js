@@ -28,11 +28,11 @@ test("classic matchmaking creates 8v8 teams with a pawn and selected second piec
 }));
 test("matchmaking never mixes game modes",async()=>withServer(async base=>{
  let cityFirst;for(let i=0;i<7;i++){const c=await queue(base,"c"+i,1000,"Конь","classic");const s=await queue(base,"s"+i,1000,"Конь","chess_city");if(i===0)cityFirst=s;assert.equal(c.data.status,"waiting");assert.equal(s.data.status,"waiting")}
- const cStatus=await fetch(base+"/matchmaking/queue/"+(await queue(base,"c-last",1000,"Пешка","classic")).data.ticket).then(r=>r.json());assert.equal(cStatus.status,"waiting");
+ const cStatus=await fetch(base+"/matchmaking/queue/"+(await queue(base,"c-last",1000,"Конь","classic")).data.ticket).then(r=>r.json());assert.equal(cStatus.status,"waiting");
  const cityStatus=await fetch(base+"/matchmaking/queue/"+cityFirst.data.ticket).then(r=>r.json());assert.equal(cityStatus.status,"waiting");
 }));
 test("waiting roster returns player nicknames, ratings and chosen piece",async()=>withServer(async base=>{
- const a=await queue(base,"alpha",1000,"Пешка","roster_test"),b=await queue(base,"bravo",1070,"Пешка","roster_test");const s=await fetch(base+"/matchmaking/queue/"+a.data.ticket).then(r=>r.json());assert.equal(s.players.length,2);assert.ok(s.players.some(p=>p.name==="Player_alpha"));assert.ok(s.players.some(p=>p.rating===1070));assert.ok(s.players.every(p=>p.pieces[0]==="Пешка"&&p.pieces[1]==="Конь"));assert.equal(s.requiredPlayers,16);
+ const a=await queue(base,"alpha",1000,"Конь","roster_test"),b=await queue(base,"bravo",1070,"Конь","roster_test");const s=await fetch(base+"/matchmaking/queue/"+a.data.ticket).then(r=>r.json());assert.equal(s.players.length,2);assert.ok(s.players.some(p=>p.name==="Player_alpha"));assert.ok(s.players.some(p=>p.rating===1070));assert.ok(s.players.every(p=>p.pieces[0]==="Пешка"&&p.pieces[1]==="Конь"));assert.equal(s.requiredPlayers,16);
 }));
 test("invalid chess piece is rejected",async()=>withServer(async base=>{const r=await queue(base,"bad-piece",1000,"Дракон");assert.equal(r.status,400)}));
 test("a player can cancel a waiting ticket",async()=>withServer(async base=>{
