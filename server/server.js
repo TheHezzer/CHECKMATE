@@ -218,9 +218,9 @@ export function createMatchmakingServer(options = {}) {
         return send(res,201,{ticket:ticketId,status,pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
       }
 
-      const firstMoveVote = url.pathname.match(/^\\/matches\\/([0-9a-f-]+)\\/first-move-vote$/);
+      const firstMoveVoteId = url.pathname.startsWith("/matches/") && url.pathname.endsWith("/first-move-vote") ? url.pathname.slice(9, -16) : "";
       if (firstMoveVote && req.method === "GET") {
-        const match = matches.get(firstMoveVote[1]);
+        const match = matches.get(firstMoveVoteId);
         if (!match) return send(res, 404, { error: "MATCH_NOT_FOUND" });
         return send(res, 200, { votes: match.firstMoveVotes, votesCast: match.votedPlayers.size, votesRequired: CLASSIC_MATCH_SIZE, resolved: match.firstMoveResolved, startingTeam: match.firstMoveTeam, startingPlayerId: match.firstMovePlayerId });
       }
