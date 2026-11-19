@@ -43,6 +43,24 @@ jobs:
           cp patches/add_modes_screen.py "$project_dir/patches/add_modes_screen.py"
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
+
+          # Install a pinned Godot 4 runtime and validate the real project.
+          GODOT_VERSION="4.4.1"
+          curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
+          unzip -q godot.zip -d godot-bin
+          GODOT_BIN="$GITHUB_WORKSPACE/godot-bin/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --headless --editor --path "$project_dir" --quit 2>&1 | tee godot-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" godot-import.log; then
+            echo "Godot editor/import validation reported errors."
+            exit 1
+          fi
+          "$GODOT_BIN" --headless --path "$project_dir" --quit-after 5 2>&1 | tee godot-runtime.log
+          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" godot-runtime.log; then
+            echo "Godot runtime validation reported errors."
+            exit 1
+          fi
+
           (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip" "$(basename "$project_dir")")
           unzip -t "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip"
           mkdir -p builds
