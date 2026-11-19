@@ -5,6 +5,10 @@ import { pathToFileURL } from "node:url";
 const PORT = Number(process.env.PORT || 8080);
 const ROOM_TTL_MS = 15 * 60 * 1000;
 const QUEUE_TTL_MS = 2 * 60 * 1000;
+const INITIAL_RATING_GAP = 100;
+const RATING_GAP_STEP = 50;
+const RATING_GAP_STEP_MS = 15 * 1000;
+const MAX_RATING_GAP = 500;
 const rooms = new Map();
 const tickets = new Map();
 const waiting = new Map();
@@ -14,7 +18,13 @@ function cleanExpired(now = Date.now()) {
   for (const [id, ticket] of tickets) {
     if (ticket.expiresAt <= now) {
       tickets.delete(id);
-      if (ticket.status === "waiting" && waiting.get(ticket.key) === id) waiting.delete(ticket.key);
+      if (ticket.status === "waiting") {
+        const queue = waiting.get(ticket.key);
+        if (queue) {
+          queue.delete(id);
+          if (queue.size === 0) waiting.delete(ticket.key);
+        }
+      }
     }
   }
 }
@@ -55,6 +65,15 @@ function roomCode() {
   return code;
 }
 
+function normalizeRating(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(100000, Math.round(number))) : 1000;
+}
+
+function allowedRatingGap(waitMs) {
+  return Math.min(MAX_RATING_GAP, INITIAL_RATING_GAP + Math.floor(Math.max(0, waitMs) / RATING_GAP_STEP_MS) * RATING_GAP_STEP);
+}
+
 function createRoom({ hostId, address, port, mode, rating }) {
   let code;
   do code = roomCode(); while (rooms.has(code));
@@ -68,6 +87,54 @@ function createRoom({ hostId, address, port, mode, rating }) {
   return room;
 }
 
+function tryMatch(ticket, now = Date.now()) {
+  const queue = waiting.get(ticket.key);
+  if (!queue) return null;
+  let best = null;
+  let bestDifference = Infinity;
+  for (const id of queue) {
+    const candidate = tickets.get(id);
+    if (!candidate || candidate.status !== "waiting" || candidate.playerId === ticket.playerId) continue;
+    const difference = Math.abs(candidate.rating - ticket.rating);
+    const candidateGap = allowedRatingGap(now - candidate.createdAt);
+    const ticketGap = allowedRatingGap(now - ticket.createdAt);
+    const allowedGap = Math.max(candidateGap, ticketGap);
+    if (difference <= allowedGap && difference < bestDifference) {
+      best = candidate;
+      bestDifference = difference;
+    }
+  }
+  if (!best) return null;
+
+  queue.delete(best.id);
+  if (queue.size === 0) waiting.delete(ticket.key);
+  const room = createRoom({
+    hostId: best.playerId,
+    address: best.address,
+    port: best.port,
+    mode: best.key,
+    rating: best.rating
+  });
+  room.guestId = ticket.playerId;
+  best.status = "matched";
+  best.role = "host";
+  best.host = room.address;
+  best.port = room.port;
+  best.code = room.code;
+  best.opponentRating = ticket.rating;
+  best.ratingDifference = bestDifference;
+  best.expiresAt = now + QUEUE_TTL_MS;
+  ticket.status = "matched";
+  ticket.role = "guest";
+  ticket.host = room.address;
+  ticket.port = room.port;
+  ticket.code = room.code;
+  ticket.opponentRating = best.rating;
+  ticket.ratingDifference = bestDifference;
+  ticket.expiresAt = now + QUEUE_TTL_MS;
+  return room;
+}
+
 export function createMatchmakingServer() {
   return http.createServer(async (req, res) => {
     if (req.method === "OPTIONS") return send(res, 204, {});
@@ -75,7 +142,7 @@ export function createMatchmakingServer() {
     cleanExpired();
 
     if (req.method === "GET" && url.pathname === "/health") {
-      return send(res, 200, { ok: true, service: "CHECKMATE matchmaking", version: 1 });
+      return send(res, 200, { ok: true, service: "CHECKMATE matchmaking", version: 2 });
     }
 
     try {
@@ -84,7 +151,7 @@ export function createMatchmakingServer() {
         const hostId = String(body.playerId || "").trim().slice(0, 64);
         const port = Number(body.port || 24567);
         const mode = String(body.mode || "classic").trim().slice(0, 32);
-        const rating = Math.max(0, Math.min(100000, Number(body.rating || 0)));
+        const rating = normalizeRating(body.rating ?? 1000);
         if (!hostId || !Number.isInteger(port) || port < 1 || port > 65535) {
           return send(res, 400, { error: "INVALID_ROOM_DATA" });
         }
@@ -110,46 +177,37 @@ export function createMatchmakingServer() {
         const body = await readJson(req);
         const playerId = String(body.playerId || "").trim().slice(0, 64);
         const mode = String(body.mode || "classic").trim().slice(0, 32);
-        const rating = Math.max(0, Math.min(100000, Number(body.rating || 0)));
+        const rating = normalizeRating(body.rating ?? 1000);
         const port = Number(body.port || 24567);
         if (!playerId || !Number.isInteger(port) || port < 1 || port > 65535) {
           return send(res, 400, { error: "INVALID_QUEUE_DATA" });
         }
-        const key = mode;
-        const waitingId = waiting.get(key);
-        const waitingTicket = waitingId ? tickets.get(waitingId) : null;
-        if (waitingTicket && waitingTicket.playerId !== playerId && waitingTicket.status === "waiting") {
-          const room = createRoom({
-            hostId: waitingTicket.playerId,
-            address: waitingTicket.address,
-            port: waitingTicket.port,
-            mode,
-            rating: waitingTicket.rating
-          });
-          room.guestId = playerId;
-          const ticketId = crypto.randomUUID();
-          const ticket = {
-            id: ticketId, playerId, key, status: "matched", role: "guest",
-            host: room.address, port: room.port, code: room.code,
-            expiresAt: Date.now() + QUEUE_TTL_MS
-          };
-          tickets.set(ticketId, ticket);
-          waitingTicket.status = "matched";
-          waitingTicket.role = "host";
-          waitingTicket.host = room.address;
-          waitingTicket.port = room.port;
-          waitingTicket.code = room.code;
-          waiting.delete(key);
-          return send(res, 201, { ticket: ticketId, status: "matched", role: "guest", host: room.address, port: room.port, code: room.code });
-        }
         const ticketId = crypto.randomUUID();
-        tickets.set(ticketId, {
-          id: ticketId, playerId, key, status: "waiting",
+        const ticket = {
+          id: ticketId, playerId, key: mode, status: "waiting",
           address: clientAddress(req), port, rating,
+          createdAt: Date.now(),
           expiresAt: Date.now() + QUEUE_TTL_MS
+        };
+        tickets.set(ticketId, ticket);
+        const queue = waiting.get(mode) || new Set();
+        waiting.set(mode, queue);
+        const room = tryMatch(ticket);
+        if (!room) {
+          queue.add(ticketId);
+          waiting.set(mode, queue);
+          return send(res, 201, {
+            ticket: ticketId, status: "waiting", pollAfterMs: 1500,
+            rating, initialRatingGap: INITIAL_RATING_GAP,
+            maxRatingGap: MAX_RATING_GAP
+          });
+        }
+        return send(res, 201, {
+          ticket: ticketId, status: "matched", role: "guest",
+          host: ticket.host, port: ticket.port, code: ticket.code,
+          opponentRating: ticket.opponentRating,
+          ratingDifference: ticket.ratingDifference
         });
-        waiting.set(key, ticketId);
-        return send(res, 201, { ticket: ticketId, status: "waiting", pollAfterMs: 1500 });
       }
 
       const ticketMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)$/);
@@ -158,7 +216,10 @@ export function createMatchmakingServer() {
         if (!ticket) return send(res, 404, { error: "TICKET_EXPIRED" });
         return send(res, 200, {
           ticket: ticket.id, status: ticket.status,
-          ...(ticket.status === "matched" ? { role: ticket.role, host: ticket.host, port: ticket.port, code: ticket.code } : {})
+          ...(ticket.status === "matched" ? {
+            role: ticket.role, host: ticket.host, port: ticket.port, code: ticket.code,
+            opponentRating: ticket.opponentRating, ratingDifference: ticket.ratingDifference
+          } : {})
         });
       }
 
