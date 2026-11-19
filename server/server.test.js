@@ -49,3 +49,22 @@ test("overbooked piece offers waitlist status and exposes remaining slots",async
  const polled=await fetch(base+"/matchmaking/queue/"+c.data.ticket).then(r=>r.json());
  assert.equal(polled.status,"waiting_piece_slot");
 }));
+
+test("first move vote resolves after 16 unique votes and picks a random player from winning side",async()=>withServer(async base=>{
+ const roles=["Ладья","Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
+ let matchResponse;
+ for(let i=0;i<16;i++) matchResponse=await queue(base,"vote-player-"+i,1000,roles[i]);
+ assert.equal(matchResponse.data.status,"matched");
+ const matchId=matchResponse.data.matchId;
+ for(let i=0;i<15;i++){
+   const player=matchResponse.data.players[i];
+   const vote=await fetch(base+"/matches/"+matchId+"/first-move-vote",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:player.playerId,vote:i<10?"white":"black"})});
+   const result=await vote.json();assert.equal(vote.status,200);assert.equal(result.resolved,false);
+ }
+ const duplicate=await fetch(base+"/matches/"+matchId+"/first-move-vote",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:matchResponse.data.players[0].playerId,vote:"black"})});
+ assert.equal(duplicate.status,409);
+ const lastPlayer=matchResponse.data.players[15];
+ const final=await fetch(base+"/matches/"+matchId+"/first-move-vote",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({playerId:lastPlayer.playerId,vote:"white"})});
+ const resolved=await final.json();assert.equal(final.status,200);assert.equal(resolved.resolved,true);assert.equal(resolved.startingTeam,"white");
+ assert.ok(matchResponse.data.players.some(p=>p.playerId===resolved.startingPlayerId&&p.team==="white"));
+}));
