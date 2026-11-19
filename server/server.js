@@ -137,7 +137,7 @@ function composeClassicRoster(candidates, referenceTicket) {
     selected.push(...pool.slice(0, required));
   }
   if (selected.length !== CLASSIC_MATCH_SIZE) return null;
-  return selected;
+  return balanceTeams(selected);
 }
 
 function tryMatch(ticket, now=Date.now()) {
