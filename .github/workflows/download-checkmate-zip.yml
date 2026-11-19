@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v28 — mobile gameplay fixes
+name: Build CHECKMATE classic v28 — mobile gameplay fixes (phone controls)
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
