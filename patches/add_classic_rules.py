@@ -2,7 +2,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
 main_path = root / "scripts" / "main.gd"
-source = main_path.read_text(encoding="utf-8").replace("\\t", "    ")
+source = main_path.read_text(encoding="utf-8").replace("\t", "    ")
 
 def replace_once(old: str, new: str, label: str) -> None:
     global source
