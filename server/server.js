@@ -1,5 +1,6 @@
 import http from "node:http";
 import crypto from "node:crypto";
+import { pathToFileURL } from "node:url";
 
 const PORT = Number(process.env.PORT || 8080);
 const ROOM_TTL_MS = 15 * 60 * 1000;
@@ -170,7 +171,7 @@ export function createMatchmakingServer() {
   });
 }
 
-if (process.env.NODE_ENV !== "test") {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const server = createMatchmakingServer();
   server.listen(PORT, "0.0.0.0", () => {
     process.stdout.write("CHECKMATE matchmaking listening on " + PORT + "\n");
