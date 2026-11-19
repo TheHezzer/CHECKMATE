@@ -28,6 +28,12 @@ docker run --rm -p 8080:8080 checkmate-matchmaking
 
 Set `PORT` if the hosting platform supplies a different port.
 
+## Rating-based matchmaking
+
+Quick matchmaking only pairs players in the same mode whose ratings are within an expanding range. The initial gap is 100 rating points; it expands by 50 points for every 15 seconds a player waits, up to 500 points. If several candidates qualify, the closest rating is selected. Multiple players can wait in the same mode queue without replacing one another.
+
+The current Godot prototype sends a temporary baseline rating of 1000 because persistent player rating and win/loss rating updates are not yet implemented. Replace this value with the player's saved competitive rating when ranked progression is added.
+
 ## Network requirements
 
 The matchmaking service does not relay game traffic. The player returned as the room host must be reachable by ENet on UDP port 24567. For public matches, deploy the game host on a server with a public address and open UDP port, or add a relay/dedicated game-server layer. A phone behind carrier NAT or a home router without port forwarding may not be reachable.
