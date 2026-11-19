@@ -1,6 +1,7 @@
 import http from "node:http";
 import crypto from "node:crypto";
 import { pathToFileURL } from "node:url";
+import { createAccountService } from "./accounts.js";
 
 const PORT = Number(process.env.PORT || 8080);
 const ROOM_TTL_MS = 15 * 60 * 1000;
@@ -136,7 +137,8 @@ function tryMatch(ticket, now = Date.now()) {
   return room;
 }
 
-export function createMatchmakingServer() {
+export function createMatchmakingServer(options = {}) {
+  const accounts = createAccountService(options);
   return http.createServer(async (req, res) => {
     if (req.method === "OPTIONS") return send(res, 204, {});
     const url = new URL(req.url, "http://localhost");
@@ -147,6 +149,30 @@ export function createMatchmakingServer() {
     }
 
     try {
+      if (req.method === "POST" && url.pathname === "/accounts/register") {
+        const body = await readJson(req);
+        const result = await accounts.register(body);
+        return send(res, result.status, result.body);
+      }
+
+      if (req.method === "POST" && url.pathname === "/accounts/login") {
+        const body = await readJson(req);
+        const result = await accounts.login(body);
+        return send(res, result.status, result.body);
+      }
+
+      if (req.method === "GET" && url.pathname === "/account/me") {
+        const authorization = String(req.headers.authorization || "");
+        const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+        const result = await accounts.me(token);
+        return send(res, result.status, result.body);
+      }
+
+      if (req.method === "GET" && url.pathname === "/leaderboard") {
+        const limit = Number(url.searchParams.get("limit") || 50);
+        return send(res, 200, { players: await accounts.leaderboard(limit) });
+      }
+
       if (req.method === "POST" && url.pathname === "/rooms") {
         const body = await readJson(req);
         const hostId = String(body.playerId || "").trim().slice(0, 64);
