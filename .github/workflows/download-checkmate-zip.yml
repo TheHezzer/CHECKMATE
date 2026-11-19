@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v32 — mobile board and figure shelf
+name: Build CHECKMATE classic v33 — onboarding and 8v8 teams
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
@@ -66,6 +66,7 @@ jobs:
           cp patches/add_classic_lobby_v30.py "$project_dir/patches/add_classic_lobby_v30.py"
           cp patches/add_piece_roles_v31.py "$project_dir/patches/add_piece_roles_v31.py"
           cp patches/add_main_shelf_and_mobile_board_v32.py "$project_dir/patches/add_main_shelf_and_mobile_board_v32.py"
+          cp patches/add_first_run_tutorial_v33.py "$project_dir/patches/add_first_run_tutorial_v33.py"
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
           python "$project_dir/patches/add_classic_turns.py"
@@ -82,6 +83,7 @@ jobs:
           python "$project_dir/patches/add_classic_lobby_v30.py"
           python "$project_dir/patches/add_piece_roles_v31.py"
           python "$project_dir/patches/add_main_shelf_and_mobile_board_v32.py"
+          python "$project_dir/patches/add_first_run_tutorial_v33.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -99,23 +101,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v32.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v32.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v33.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v33.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v32.zip" builds/CHECKMATE_classic_v32.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v33.zip" builds/CHECKMATE_classic_v33.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v32 build"
+          commit_message: "Save CHECKMATE classic v33 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v32.zip
+          file_pattern: builds/CHECKMATE_classic_v33.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v32
-          path: CHECKMATE_classic_v32.zip
+          name: CHECKMATE-classic-v33
+          path: CHECKMATE_classic_v33.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
