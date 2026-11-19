@@ -7,7 +7,7 @@ async function withServer(fn) {
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   try { await fn("http://127.0.0.1:" + address.port); }
-  finally { await new Promise(resolve => server.close(resolve)); }
+  finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 }
 
 test("health endpoint reports service", async () => {
