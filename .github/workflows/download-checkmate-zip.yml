@@ -59,6 +59,7 @@ jobs:
           cp patches/add_online_rooms.py "$project_dir/patches/add_online_rooms.py"
           cp patches/add_matchmaking_client.py "$project_dir/patches/add_matchmaking_client.py"
           cp patches/add_persistent_rating.py "$project_dir/patches/add_persistent_rating.py"
+          cp patches/add_party_flow_v26.py "$project_dir/patches/add_party_flow_v26.py"
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
           python "$project_dir/patches/add_classic_turns.py"
