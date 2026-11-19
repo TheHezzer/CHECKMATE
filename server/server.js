@@ -4,8 +4,8 @@ import { pathToFileURL } from "node:url";
 import { createAccountService } from "./accounts.js";
 
 const PORT = Number(process.env.PORT || 8080);
-const ROOM_TTL_MS = 15 * 60 * 1000;
-const QUEUE_TTL_MS = 2 * 60 * 1000;
+const QUEUE_TTL_MS = 10 * 60 * 1000;
+const PIECE_SLOTS_PER_TEAM = { "Пешка": 8, "Ладья": 2, "Конь": 2, "Слон": 2, "Ферзь": 1, "Король": 1 };
 const INITIAL_RATING_GAP = 100;
 const RATING_GAP_STEP = 50;
 const RATING_GAP_STEP_MS = 15 * 1000;
@@ -88,7 +88,7 @@ function balanceTeams(candidates) {
     else team=sums.white<=sums.black?"white":"black";
     teams[team].push(p);sums[team]+=p.rating;
   }
-  return [...teams.white.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,team:"white",slot})),...teams.black.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,team:"black",slot}))];
+  return [...teams.white.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,team:"white",slot})),...teams.black.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,team:"black",slot}))];
 }
 function eligiblePlayers(ticket,now=Date.now()){
   const queue=waiting.get(ticket.key);if(!queue)return[];
@@ -101,18 +101,54 @@ function queuePreview(ticket,now=Date.now()){
   const count=queue?[...queue].map(id=>tickets.get(id)).filter(p=>p&&p.status==="waiting").length:0;
   return {players:balanceTeams([ticket,...eligiblePlayers(ticket,now)].slice(0,CLASSIC_MATCH_SIZE)),queueCount:count,requiredPlayers:CLASSIC_MATCH_SIZE,allowedRatingGap:allowedRatingGap(now-ticket.createdAt)};
 }
-function tryMatch(ticket,now=Date.now()){
-  const candidates=[ticket,...eligiblePlayers(ticket,now)].slice(0,CLASSIC_MATCH_SIZE);
-  if(candidates.length<CLASSIC_MATCH_SIZE)return null;
-  const roster=balanceTeams(candidates);if(roster.length!==CLASSIC_MATCH_SIZE)return null;
+function composeClassicRoster(candidates, referenceTicket) {
+  const selectedByPiece = {};
+  for (const [piece, perTeam] of Object.entries(PIECE_SLOTS_PER_TEAM)) {
+    const required = perTeam * 2;
+    const group = candidates
+      .filter(p => p.piece === piece)
+      .sort((a,b) => Math.abs(a.rating-referenceTicket.rating)-Math.abs(b.rating-referenceTicket.rating) || a.createdAt-b.createdAt)
+      .slice(0, required);
+    if (group.length < required) return null;
+    selectedByPiece[piece] = group.sort((a,b)=>a.rating-b.rating);
+  }
+  const teams = { white: [], black: [] };
+  const sums = { white: 0, black: 0 };
+  for (const [piece, group] of Object.entries(selectedByPiece)) {
+    let whitePieceSlot = 0;
+    let blackPieceSlot = 0;
+    for (let i=0; i<group.length; i+=2) {
+      const low = group[i], high = group[i+1];
+      const highGoesWhite = sums.white <= sums.black;
+      const whitePlayer = highGoesWhite ? high : low;
+      const blackPlayer = highGoesWhite ? low : high;
+      teams.white.push({ playerId:whitePlayer.playerId, name:whitePlayer.playerName, rating:whitePlayer.rating, piece, team:"white", pieceSlot:whitePieceSlot++ });
+      teams.black.push({ playerId:blackPlayer.playerId, name:blackPlayer.playerName, rating:blackPlayer.rating, piece, team:"black", pieceSlot:blackPieceSlot++ });
+      sums.white += whitePlayer.rating;
+      sums.black += blackPlayer.rating;
+    }
+  }
+  const order = Object.keys(PIECE_SLOTS_PER_TEAM);
+  teams.white.sort((a,b)=>order.indexOf(a.piece)-order.indexOf(b.piece)||a.pieceSlot-b.pieceSlot);
+  teams.black.sort((a,b)=>order.indexOf(a.piece)-order.indexOf(b.piece)||a.pieceSlot-b.pieceSlot);
+  teams.white.forEach((p,slot)=>p.slot=slot);
+  teams.black.forEach((p,slot)=>p.slot=slot);
+  return [...teams.white,...teams.black];
+}
+
+function tryMatch(ticket, now=Date.now()) {
+  const candidates=[ticket,...eligiblePlayers(ticket,now)];
+  const roster=composeClassicRoster(candidates,ticket);
+  if(!roster || roster.length!==CLASSIC_MATCH_SIZE)return null;
   const matchId=crypto.randomUUID();
   const match={id:matchId,mode:ticket.key,createdAt:now,players:roster,gameServerHost:process.env.GAME_SERVER_HOST||"",gameServerPort:Number(process.env.GAME_SERVER_PORT||24567)};
   matches.set(matchId,match);
+  const selectedIds=new Set(roster.map(p=>p.playerId));
   const queue=waiting.get(ticket.key);
-  for(const p of candidates){
+  for(const p of candidates.filter(p=>selectedIds.has(p.playerId))){
     if(queue)queue.delete(p.id);
     p.status="matched";p.matchId=matchId;p.players=roster;
-    const entry=roster.find(x=>x.playerId===p.playerId);p.team=entry.team;p.slot=entry.slot;
+    const entry=roster.find(x=>x.playerId===p.playerId);p.team=entry.team;p.slot=entry.slot;p.pieceSlot=entry.pieceSlot;
     p.gameServerHost=match.gameServerHost;p.gameServerPort=match.gameServerPort;p.expiresAt=now+QUEUE_TTL_MS;
   }
   if(queue&&queue.size===0)waiting.delete(ticket.key);
@@ -159,13 +195,14 @@ export function createMatchmakingServer(options = {}) {
         const body=await readJson(req);
         const playerId=String(body.playerId||"").trim().slice(0,64);
         const playerName=String(body.playerName||("Игрок-"+playerId.slice(0,5))).trim().slice(0,20)||"Игрок";
+        const piece=String(body.piece||"Пешка").trim();
         const mode=String(body.mode||"classic").trim().slice(0,32);
         const rating=normalizeRating(body.rating??1000);
-        if(!playerId||!mode)return send(res,400,{error:"INVALID_QUEUE_DATA"});
+        if(!playerId||!mode||!Object.hasOwn(PIECE_SLOTS_PER_TEAM,piece))return send(res,400,{error:"INVALID_QUEUE_DATA"});
         const existing=[...tickets.values()].find(t=>t.playerId===playerId&&t.status==="waiting");
         if(existing)return send(res,409,{error:"ALREADY_IN_QUEUE",ticket:existing.id});
         const ticketId=crypto.randomUUID();
-        const ticket={id:ticketId,playerId,playerName,key:mode,status:"waiting",rating,createdAt:Date.now(),expiresAt:Date.now()+QUEUE_TTL_MS};
+        const ticket={id:ticketId,playerId,playerName,piece,key:mode,status:"waiting",rating,createdAt:Date.now(),expiresAt:Date.now()+QUEUE_TTL_MS};
         tickets.set(ticketId,ticket);
         const queue=waiting.get(mode)||new Set();queue.add(ticketId);waiting.set(mode,queue);
         const match=tryMatch(ticket);
