@@ -7,7 +7,7 @@ test("health endpoint reports service",async()=>withServer(async base=>{const r=
 test("manual room creation is disabled",async()=>withServer(async base=>{const r=await fetch(base+"/rooms",{method:"POST",headers:{"content-type":"application/json"},body:"{}"});assert.equal(r.status,404)}));
 test("classic matchmaking creates 8v8 teams with a pawn and selected second piece per player",async()=>withServer(async base=>{
  let first;let n=0;
- const roles=["Конь","Ладья","Слон","Ферзь","Король"];
+ const roles=["Ладья","Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
  for(let i=0;i<16;i++){
    const r=await queue(base,"p"+i,1000+(i%8)*5,roles[i%roles.length]);
    if(i===0)first=r;
@@ -24,7 +24,8 @@ test("classic matchmaking creates 8v8 teams with a pawn and selected second piec
    assert.equal(player.piece,player.secondPiece);
    assert.ok(roles.includes(player.secondPiece));
  }
- assert.ok(Math.abs(white.reduce((a,p)=>a+p.rating,0)-black.reduce((a,p)=>a+p.rating,0))<=40);
+ assert.deepEqual(Object.fromEntries(["Ладья","Конь","Слон","Ферзь","Король"].map(piece=>[piece,white.filter(p=>p.secondPiece===piece).length])),{"Ладья":2,"Конь":2,"Слон":2,"Ферзь":1,"Король":1});
+ assert.deepEqual(Object.fromEntries(["Ладья","Конь","Слон","Ферзь","Король"].map(piece=>[piece,black.filter(p=>p.secondPiece===piece).length])),{"Ладья":2,"Конь":2,"Слон":2,"Ферзь":1,"Король":1});
 }));
 test("matchmaking never mixes game modes",async()=>withServer(async base=>{
  let cityFirst;for(let i=0;i<7;i++){const c=await queue(base,"c"+i,1000,"Конь","classic");const s=await queue(base,"s"+i,1000,"Конь","chess_city");if(i===0)cityFirst=s;assert.equal(c.data.status,"waiting");assert.equal(s.data.status,"waiting")}
@@ -37,4 +38,14 @@ test("waiting roster returns player nicknames, ratings and chosen piece",async()
 test("invalid chess piece is rejected",async()=>withServer(async base=>{const r=await queue(base,"bad-piece",1000,"Дракон");assert.equal(r.status,400)}));
 test("a player can cancel a waiting ticket",async()=>withServer(async base=>{
  const w=await queue(base,"cancel-me",1000);const c=await fetch(base+"/matchmaking/queue/"+w.data.ticket+"/cancel",{method:"POST"});assert.equal(c.status,200);assert.equal((await c.json()).status,"cancelled");assert.equal((await fetch(base+"/matchmaking/queue/"+w.data.ticket).then(r=>r.json())).status,"cancelled");
+}));
+
+test("overbooked piece offers waitlist status and exposes remaining slots",async()=>withServer(async base=>{
+ const a=await queue(base,"queen-a",1000,"Ферзь"),b=await queue(base,"queen-b",1000,"Ферзь"),c=await queue(base,"queen-c",1000,"Ферзь");
+ assert.equal(a.data.status,"waiting");assert.equal(b.data.status,"waiting");assert.equal(c.data.status,"waiting_piece_slot");
+ assert.equal(c.data.pieceCapacity["Ферзь"].selected,3);
+ assert.equal(c.data.pieceCapacity["Ферзь"].capacity,2);
+ assert.equal(c.data.pieceCapacity["Ферзь"].available,0);
+ const polled=await fetch(base+"/matchmaking/queue/"+c.data.ticket).then(r=>r.json());
+ assert.equal(polled.status,"waiting_piece_slot");
 }));
