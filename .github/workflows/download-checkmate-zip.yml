@@ -80,7 +80,7 @@ jobs:
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v17
+          name: CHECKMATE-classic-v18
           path: CHECKMATE_classic_v18.zip
           if-no-files-found: error
           compression-level: 0
