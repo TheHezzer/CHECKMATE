@@ -1,4 +1,4 @@
-name: Download CHECKMATE ZIP
+name: Build CHECKMATE updated ZIP
 
 on:
   workflow_dispatch:
@@ -6,40 +6,49 @@ on:
     branches:
       - splash-update
     paths:
-      - '*.zip'
       - '.github/workflows/download-checkmate-zip.yml'
+      - 'patches/**'
+      - '*.zip'
 
 permissions:
   contents: read
 
 jobs:
-  export-zip:
+  build-project:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Find and validate project ZIP
+      - name: Extract and patch project
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
           files=( *.zip )
           if [ "${#files[@]}" -eq 0 ]; then
-            echo "No ZIP archive found in repository root."
+            echo "No source ZIP found in repository root."
             exit 1
           fi
-          for file in "${files[@]}"; do
-            echo "Checking: $file"
-            unzip -t "$file"
-          done
-          printf '%s\n' "${files[@]}" > zip-files.txt
+          mkdir -p patched
+          unzip -q "${files[0]}" -d patched
+          project_file="$(find patched -name project.godot -print -quit)"
+          if [ -z "$project_file" ]; then
+            echo "project.godot was not found in source archive."
+            exit 1
+          fi
+          project_dir="$(dirname "$project_file")"
+          mkdir -p "$project_dir/patches"
+          cp patches/apply_patch.py "$project_dir/patches/apply_patch.py"
+          python "$project_dir/patches/apply_patch.py"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_preparation_zloty_v14.zip" "$(basename "$project_dir")")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_preparation_zloty_v14.zip"
 
-      - name: Upload original project ZIP
+      - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-original-project
-          path: '*.zip'
+          name: CHECKMATE-preparation-zloty-v14
+          path: CHECKMATE_preparation_zloty_v14.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
