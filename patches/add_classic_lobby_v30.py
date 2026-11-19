@@ -234,5 +234,19 @@ replace_func("_start_quick_match", r'''func _start_quick_match() -> void:
         "rating": competitive_rating
     })''')
 
+# Remove the legacy Online entry point entirely; the preparation confirmation opens the queue screen.
+source = source.replace("_open_online_panel()", "_open_matchmaking_queue()")
+import re
+while re.search(r"(?m)^func _open_online_panel\\(", source):
+    match = re.search(r"(?m)^func _open_online_panel\\([^\\n]*\\n", source)
+    if not match:
+        break
+    start = match.start()
+    end = source.find("\\nfunc ", match.end())
+    if end < 0:
+        source = source[:start]
+    else:
+        source = source[:start] + source[end + 1:]
+
 path.write_text(source, encoding="utf-8")
 print("CHECKMATE v30 automatic lobby client patch ready.")
