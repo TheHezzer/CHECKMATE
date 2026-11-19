@@ -87,3 +87,6 @@ func _advance_onboarding() -> void:
     menu_panel.visible = true
     _show_notice("Обучение завершено! Пешка и конь открыты. Награда: 500 злотых и 100 XP.")
 """
+
+p.write_text(s, encoding='utf-8')
+print('CHECKMATE v33 tutorial and 8v8 two-piece client patch applied')
