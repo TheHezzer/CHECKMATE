@@ -1,7 +1,7 @@
 from pathlib import Path
 
 path = Path(__file__).resolve().parent.parent / "scripts" / "main.gd"
-source = path.read_text(encoding="utf-8").replace("\\t", "    ")
+source = path.read_text(encoding="utf-8").replace("\t", "    ")
 
 def replace_func(name, replacement):
     global source
@@ -9,14 +9,14 @@ def replace_func(name, replacement):
     start = source.find(marker)
     if start < 0:
         raise SystemExit("Function missing: " + name)
-    end = source.find("\\nfunc ", start + len(marker))
+    end = source.find("\nfunc ", start + len(marker))
     if end < 0:
         end = len(source)
-    source = source[:start] + replacement.rstrip() + "\\n" + source[end:]
+    source = source[:start] + replacement.rstrip() + "\n" + source[end:]
 
-source = source.replace('const DEFAULT_MATCHMAKING_RATING := 1000\\n',
-    'const DEFAULT_MATCHMAKING_RATING := 1000\\nconst MATCHMAKING_SERVER_URL := "https://YOUR-MATCHMAKING-SERVER"\\nconst CLASSIC_TEAM_SIZE := 16\\n', 1)
-anchor = "var matchmaking_started_at := 0\\n"
+source = source.replace('const DEFAULT_MATCHMAKING_RATING := 1000\n',
+    'const DEFAULT_MATCHMAKING_RATING := 1000\nconst MATCHMAKING_SERVER_URL := "https://YOUR-MATCHMAKING-SERVER"\nconst CLASSIC_TEAM_SIZE := 16\n', 1)
+anchor = "var matchmaking_started_at := 0\n"
 extra = """var queue_timer_label: Label
 var queue_status_label: Label
 var queue_rating_label: Label
@@ -99,9 +99,9 @@ func _update_queue_roster(players: Array) -> void:
         elif team == "black" and slot >= 0 and slot < CLASSIC_TEAM_SIZE:
             black[slot] = "%02d  %s" % [slot + 1, line]
     if queue_white_roster_label:
-        queue_white_roster_label.text = "\\n".join(white)
+        queue_white_roster_label.text = "\n".join(white)
     if queue_black_roster_label:
-        queue_black_roster_label.text = "\\n".join(black)
+        queue_black_roster_label.text = "\n".join(black)
 
 func _open_online_panel() -> void:
     if online_panel == null:
@@ -210,7 +210,7 @@ replace_func("_handle_matchmaking_result", r'''func _handle_matchmaking_result(p
     var host := str(payload.get("gameServerHost", ""))
     if host.is_empty():
         if queue_status_label:
-            queue_status_label.text += "\\n32 игрока подобраны. Игровой сервер ещё не настроен — автоматический старт матча пока недоступен."
+            queue_status_label.text += "\n32 игрока подобраны. Игровой сервер ещё не настроен — автоматический старт матча пока недоступен."
         return
     _connect_to_online_host(host, int(payload.get("gameServerPort", 24567)))''')
 
