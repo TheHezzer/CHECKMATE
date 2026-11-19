@@ -22,7 +22,7 @@ function cleanExpired(now = Date.now()) {
   for (const [id, ticket] of tickets) {
     if (ticket.expiresAt <= now) {
       tickets.delete(id);
-      if (ticket.status === "waiting") {
+      if (["waiting","waiting_piece_slot"].includes(ticket.status)) {
         const queue = waiting.get(ticket.key);
         if (queue) {
           queue.delete(id);
@@ -203,7 +203,7 @@ export function createMatchmakingServer(options = {}) {
         const mode=String(body.mode||"classic").trim().slice(0,32);
         const rating=normalizeRating(body.rating??1000);
         if(!playerId||!mode||!ALLOWED_SECOND_PIECES.has(piece))return send(res,400,{error:"INVALID_QUEUE_DATA"});
-        const existing=[...tickets.values()].find(t=>t.playerId===playerId&&t.status==="waiting");
+        const existing=[...tickets.values()].find(t=>t.playerId===playerId&&["waiting","waiting_piece_slot"].includes(t.status));
         if(existing)return send(res,409,{error:"ALREADY_IN_QUEUE",ticket:existing.id});
         const ticketId=crypto.randomUUID();
         const ticket={id:ticketId,playerId,playerName,piece,key:mode,status:"waiting",rating,createdAt:Date.now(),expiresAt:Date.now()+QUEUE_TTL_MS};
@@ -250,7 +250,7 @@ export function createMatchmakingServer(options = {}) {
       if (req.method === "POST" && cancelMatch) {
         const ticket = tickets.get(cancelMatch[1]);
         if (!ticket) return send(res, 404, { error: "TICKET_EXPIRED" });
-        if (ticket.status !== "waiting") return send(res, 409, { error: "QUEUE_NOT_WAITING" });
+        if (!["waiting","waiting_piece_slot"].includes(ticket.status)) return send(res, 409, { error: "QUEUE_NOT_WAITING" });
         const queue = waiting.get(ticket.key);
         if (queue) {
           queue.delete(ticket.id);
