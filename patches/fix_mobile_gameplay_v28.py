@@ -193,3 +193,22 @@ project = project_path.read_text(encoding="utf-8")
 project = project.replace('window/stretch/mode="canvas_items"', 'window/stretch/mode="canvas_items"\\nwindow/stretch/aspect="expand"')
 project_path.write_text(project, encoding="utf-8")
 print("CHECKMATE v28 mobile board, turn highlights, economy messages and typography patch applied.")
+
+
+source = source.replace(
+'''func _advance_team_turn() -> void:
+    if game_over:
+        return
+    current_team = "black" if current_team == "white" else "white"
+    active_teammate = 1
+    selected_game_piece = null
+    _refresh_team_turn_label()''',
+'''func _advance_team_turn() -> void:
+    if game_over:
+        return
+    current_team = "black" if current_team == "white" else "white"
+    active_teammate = 1
+    selected_game_piece = null
+    _refresh_team_turn_label()
+    _update_turn_highlights()'''
+)
