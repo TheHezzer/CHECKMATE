@@ -42,9 +42,11 @@ jobs:
           cp patches/apply_patch.py "$project_dir/patches/apply_patch.py"
           cp patches/add_modes_screen.py "$project_dir/patches/add_modes_screen.py"
           cp patches/add_classic_turns.py "$project_dir/patches/add_classic_turns.py"
+          cp patches/add_classic_rules.py "$project_dir/patches/add_classic_rules.py"
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
           python "$project_dir/patches/add_classic_turns.py"
+          python "$project_dir/patches/add_classic_rules.py"
 
           # Install a pinned Godot 4 runtime and validate the real project.
           GODOT_VERSION="4.4.1"
@@ -63,15 +65,15 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v17.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v17.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v18.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v18.zip"
           mkdir -p builds
           cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v17.zip" builds/CHECKMATE_classic_v17.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v17 build"
+          commit_message: "Save CHECKMATE classic v18 build"
           branch: splash-update
           file_pattern: builds/CHECKMATE_classic_v17.zip
 
