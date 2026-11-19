@@ -41,8 +41,10 @@ jobs:
           mkdir -p "$project_dir/patches"
           cp patches/apply_patch.py "$project_dir/patches/apply_patch.py"
           cp patches/add_modes_screen.py "$project_dir/patches/add_modes_screen.py"
+          cp patches/add_classic_turns.py "$project_dir/patches/add_classic_turns.py"
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
+          python "$project_dir/patches/add_classic_turns.py"
 
           # Install a pinned Godot 4 runtime and validate the real project.
           GODOT_VERSION="4.4.1"
@@ -61,7 +63,7 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip" "$(basename "$project_dir")")
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v17.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot" )
           unzip -t "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip"
           mkdir -p builds
           cp "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip" builds/CHECKMATE_modes_v16.zip
@@ -76,7 +78,7 @@ jobs:
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-modes-v16
+          name: CHECKMATE-classic-v17
           path: CHECKMATE_modes_v16.zip
           if-no-files-found: error
           compression-level: 0
