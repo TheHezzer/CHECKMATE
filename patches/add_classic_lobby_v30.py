@@ -234,19 +234,16 @@ replace_func("_start_quick_match", r'''func _start_quick_match() -> void:
         "rating": competitive_rating
     })''')
 
-# Remove the legacy Online entry point entirely; the preparation confirmation opens the queue screen.
+# The new queue opener is inserted with the queue screen. Rename old callers and remove the legacy duplicate.
 source = source.replace("_open_online_panel()", "_open_matchmaking_queue()")
 import re
-while re.search(r"(?m)^func _open_online_panel\(", source):
-    match = re.search(r"(?m)^func _open_online_panel\([^\n]*\n", source)
-    if not match:
-        break
-    start = match.start()
-    end = source.find("\nfunc ", match.end())
-    if end < 0:
-        source = source[:start]
+openers = list(re.finditer(r"(?m)^func _open_matchmaking_queue\(", source))
+for duplicate in reversed(openers[1:]):
+    block_end = source.find("\nfunc ", duplicate.end())
+    if block_end < 0:
+        source = source[:duplicate.start()]
     else:
-        source = source[:start] + source[end + 1:]
+        source = source[:duplicate.start()] + source[block_end + 1:]
 
 path.write_text(source, encoding="utf-8")
 print("CHECKMATE v30 automatic lobby client patch ready.")
