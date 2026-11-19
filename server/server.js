@@ -168,7 +168,7 @@ export function createMatchmakingServer(options = {}) {
         const body=await readJson(req);
         const playerId=String(body.playerId||"").trim().slice(0,64);
         const playerName=String(body.playerName||("Игрок-"+playerId.slice(0,5))).trim().slice(0,20)||"Игрок";
-        const piece=String(body.piece||"Пешка").trim();
+        const piece=String(body.piece||"Конь").trim();
         const mode=String(body.mode||"classic").trim().slice(0,32);
         const rating=normalizeRating(body.rating??1000);
         if(!playerId||!mode||!ALLOWED_SECOND_PIECES.has(piece))return send(res,400,{error:"INVALID_QUEUE_DATA"});
