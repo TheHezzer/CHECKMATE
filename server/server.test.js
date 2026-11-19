@@ -10,6 +10,15 @@ async function withServer(fn) {
   finally { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }
 }
 
+async function queue(base, playerId, rating, mode = "classic", ip = "203.0.113.1") {
+  const response = await fetch(base + "/matchmaking/queue", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": ip },
+    body: JSON.stringify({ playerId, mode, port: 24567, rating })
+  });
+  return { status: response.status, data: await response.json() };
+}
+
 test("health endpoint reports service", async () => {
   await withServer(async base => {
     const response = await fetch(base + "/health");
@@ -42,21 +51,38 @@ test("private room can be created and joined once", async () => {
   });
 });
 
-test("quick matchmaking pairs two players in the same mode", async () => {
+test("quick matchmaking pairs only players within the initial rating gap", async () => {
   await withServer(async base => {
-    const enqueue = async (playerId, ip) => fetch(base + "/matchmaking/queue", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-forwarded-for": ip },
-      body: JSON.stringify({ playerId, mode: "classic", port: 24567, rating: 1000 })
-    }).then(r => r.json());
-    const first = await enqueue("p1", "203.0.113.1");
-    assert.equal(first.status, "waiting");
-    const second = await enqueue("p2", "203.0.113.2");
-    assert.equal(second.status, "matched");
-    assert.equal(second.role, "guest");
-    const status = await fetch(base + "/matchmaking/queue/" + first.ticket).then(r => r.json());
-    assert.equal(status.status, "matched");
-    assert.equal(status.role, "host");
-    assert.equal(status.code, second.code);
+    const first = await queue(base, "p1", 1000, "classic", "203.0.113.1");
+    assert.equal(first.data.status, "waiting");
+    const tooStrong = await queue(base, "p2", 1600, "classic", "203.0.113.2");
+    assert.equal(tooStrong.data.status, "waiting");
+    const close = await queue(base, "p3", 1080, "classic", "203.0.113.3");
+    assert.equal(close.data.status, "matched");
+    assert.equal(close.data.ratingDifference, 80);
+    const firstStatus = await fetch(base + "/matchmaking/queue/" + first.data.ticket).then(r => r.json());
+    assert.equal(firstStatus.status, "matched");
+    const strongStatus = await fetch(base + "/matchmaking/queue/" + tooStrong.data.ticket).then(r => r.json());
+    assert.equal(strongStatus.status, "waiting");
+  });
+});
+
+test("quick matchmaking never pairs different game modes", async () => {
+  await withServer(async base => {
+    const classic = await queue(base, "p1", 1000, "classic");
+    const city = await queue(base, "p2", 1000, "chess_city", "203.0.113.2");
+    assert.equal(classic.data.status, "waiting");
+    assert.equal(city.data.status, "waiting");
+  });
+});
+
+test("queue supports multiple waiting players without overwriting them", async () => {
+  await withServer(async base => {
+    const a = await queue(base, "a", 1000, "classic", "203.0.113.1");
+    const b = await queue(base, "b", 2000, "classic", "203.0.113.2");
+    const c = await queue(base, "c", 1010, "classic", "203.0.113.3");
+    assert.equal(a.data.status, "matched");
+    assert.equal(b.data.status, "waiting");
+    assert.equal(c.data.status, "matched");
   });
 });
