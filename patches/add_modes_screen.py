@@ -61,7 +61,7 @@ func _build_mode_selection_screen() -> void:
     ]
     for i in range(names.size()):
         var left := 0.035 + float(i) * 0.315
-        var card_text := symbols[i] + "  |  " + names[i] + "  |  " + captions[i]
+        var card_text: String = symbols[i] + "  |  " + names[i] + "  |  " + captions[i]
         var card := _ornate_button(frame, card_text, left, 0.235, left + 0.285, 0.57, 16, "card")
         card.pressed.connect(_select_mode_card.bind(names[i]))
         mode_choice_buttons.append(card)
