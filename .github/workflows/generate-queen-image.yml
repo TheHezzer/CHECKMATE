@@ -1,0 +1,53 @@
+name: Generate CHECKMATE Queen Image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-queen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate queen image with Stability AI
+        env:
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${STABILITY_API_KEY:-}" ]; then
+            echo "::error::Add STABILITY_API_KEY in Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          mkdir -p assets/characters
+
+          curl --fail-with-body --silent --show-error \
+            -X POST "https://api.stability.ai/v2beta/stable-image/generate/core" \
+            -H "Authorization: Bearer ${STABILITY_API_KEY}" \
+            -H "Accept: image/*" \
+            -F "prompt=Full-body character concept art of a formidable adult female chess queen, designed as the queen counterpart to a dark black-steel armored medieval chess king. Clearly feminine face and elegant feminine silhouette, fuller bust tastefully shaped beneath fitted black plate armor, sculpted dark steel cuirass, subtle aged bronze details, refined high crown, long dark hair, regal and intimidating presence. Premium realistic AAA video game character design, cinematic studio lighting, highly detailed metal and leather materials, realistic proportions, front-facing neutral standing pose, entire character visible from crown to boots, centered composition, plain dark charcoal studio background. No text, no logo, no pedestal, no weapons, no extra characters." \
+            -F "aspect_ratio=3:4" \
+            -F "output_format=png" \
+            -o assets/characters/queen_black.png
+
+          file assets/characters/queen_black.png
+          test -s assets/characters/queen_black.png
+
+      - name: Commit generated queen image
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/characters/queen_black.png
+          if git diff --cached --quiet; then
+            echo "No image changes to commit."
+            exit 0
+          fi
+          git commit -m "Add generated black steel queen character image"
+          git push
