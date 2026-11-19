@@ -5,14 +5,14 @@ import { createAccountService } from "./accounts.js";
 
 const PORT = Number(process.env.PORT || 8080);
 const QUEUE_TTL_MS = 10 * 60 * 1000;
-const PIECE_SLOTS_PER_TEAM = { "Пешка": 8, "Ладья": 2, "Конь": 2, "Слон": 2, "Ферзь": 1, "Король": 1 };
+const ALLOWED_SECOND_PIECES = new Set(["Ладья", "Конь", "Слон", "Ферзь", "Король"]);
 const INITIAL_RATING_GAP = 100;
 const RATING_GAP_STEP = 50;
 const RATING_GAP_STEP_MS = 15 * 1000;
 const MAX_RATING_GAP = 500;
 const matches = new Map();
-const CLASSIC_TEAM_SIZE = 16;
-const CLASSIC_MATCH_SIZE = 32;
+const CLASSIC_TEAM_SIZE = 8;
+const CLASSIC_MATCH_SIZE = 16;
 const tickets = new Map();
 const waiting = new Map();
 
@@ -88,7 +88,7 @@ function balanceTeams(candidates) {
     else team=sums.white<=sums.black?"white":"black";
     teams[team].push(p);sums[team]+=p.rating;
   }
-  return [...teams.white.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,team:"white",slot})),...teams.black.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,team:"black",slot}))];
+  return [...teams.white.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,secondPiece:p.piece,pieces:["Пешка",p.piece],team:"white",slot})),...teams.black.map((p,slot)=>({playerId:p.playerId,name:p.playerName,rating:p.rating,piece:p.piece,secondPiece:p.piece,pieces:["Пешка",p.piece],team:"black",slot}))];
 }
 function eligiblePlayers(ticket,now=Date.now()){
   const queue=waiting.get(ticket.key);if(!queue)return[];
@@ -102,38 +102,11 @@ function queuePreview(ticket,now=Date.now()){
   return {players:balanceTeams([ticket,...eligiblePlayers(ticket,now)].slice(0,CLASSIC_MATCH_SIZE)),queueCount:count,requiredPlayers:CLASSIC_MATCH_SIZE,allowedRatingGap:allowedRatingGap(now-ticket.createdAt)};
 }
 function composeClassicRoster(candidates, referenceTicket) {
-  const selectedByPiece = {};
-  for (const [piece, perTeam] of Object.entries(PIECE_SLOTS_PER_TEAM)) {
-    const required = perTeam * 2;
-    const group = candidates
-      .filter(p => p.piece === piece)
-      .sort((a,b) => Math.abs(a.rating-referenceTicket.rating)-Math.abs(b.rating-referenceTicket.rating) || a.createdAt-b.createdAt)
-      .slice(0, required);
-    if (group.length < required) return null;
-    selectedByPiece[piece] = group.sort((a,b)=>a.rating-b.rating);
-  }
-  const teams = { white: [], black: [] };
-  const sums = { white: 0, black: 0 };
-  for (const [piece, group] of Object.entries(selectedByPiece)) {
-    let whitePieceSlot = 0;
-    let blackPieceSlot = 0;
-    for (let i=0; i<group.length; i+=2) {
-      const low = group[i], high = group[i+1];
-      const highGoesWhite = sums.white <= sums.black;
-      const whitePlayer = highGoesWhite ? high : low;
-      const blackPlayer = highGoesWhite ? low : high;
-      teams.white.push({ playerId:whitePlayer.playerId, name:whitePlayer.playerName, rating:whitePlayer.rating, piece, team:"white", pieceSlot:whitePieceSlot++ });
-      teams.black.push({ playerId:blackPlayer.playerId, name:blackPlayer.playerName, rating:blackPlayer.rating, piece, team:"black", pieceSlot:blackPieceSlot++ });
-      sums.white += whitePlayer.rating;
-      sums.black += blackPlayer.rating;
-    }
-  }
-  const order = Object.keys(PIECE_SLOTS_PER_TEAM);
-  teams.white.sort((a,b)=>order.indexOf(a.piece)-order.indexOf(b.piece)||a.pieceSlot-b.pieceSlot);
-  teams.black.sort((a,b)=>order.indexOf(a.piece)-order.indexOf(b.piece)||a.pieceSlot-b.pieceSlot);
-  teams.white.forEach((p,slot)=>p.slot=slot);
-  teams.black.forEach((p,slot)=>p.slot=slot);
-  return [...teams.white,...teams.black];
+  if (candidates.length < CLASSIC_MATCH_SIZE) return null;
+  const selected = [...candidates]
+    .sort((a,b) => Math.abs(a.rating-referenceTicket.rating)-Math.abs(b.rating-referenceTicket.rating) || a.createdAt-b.createdAt)
+    .slice(0, CLASSIC_MATCH_SIZE);
+  return balanceTeams(selected);
 }
 
 function tryMatch(ticket, now=Date.now()) {
@@ -198,7 +171,7 @@ export function createMatchmakingServer(options = {}) {
         const piece=String(body.piece||"Пешка").trim();
         const mode=String(body.mode||"classic").trim().slice(0,32);
         const rating=normalizeRating(body.rating??1000);
-        if(!playerId||!mode||!Object.hasOwn(PIECE_SLOTS_PER_TEAM,piece))return send(res,400,{error:"INVALID_QUEUE_DATA"});
+        if(!playerId||!mode||!ALLOWED_SECOND_PIECES.has(piece))return send(res,400,{error:"INVALID_QUEUE_DATA"});
         const existing=[...tickets.values()].find(t=>t.playerId===playerId&&t.status==="waiting");
         if(existing)return send(res,409,{error:"ALREADY_IN_QUEUE",ticket:existing.id});
         const ticketId=crypto.randomUUID();
