@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v19
+name: Build CHECKMATE classic v19 — validation pass 2
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
