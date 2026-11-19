@@ -11,7 +11,7 @@ on:
       - '*.zip'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-project:
@@ -45,6 +45,15 @@ jobs:
           python "$project_dir/patches/add_modes_screen.py"
           (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip" "$(basename "$project_dir")")
           unzip -t "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip"
+          mkdir -p builds
+          cp "$GITHUB_WORKSPACE/CHECKMATE_modes_v16.zip" builds/CHECKMATE_modes_v16.zip
+
+      - name: Save build ZIP in repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Save CHECKMATE modes v16 build"
+          branch: splash-update
+          file_pattern: builds/CHECKMATE_modes_v16.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
