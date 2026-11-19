@@ -22,12 +22,12 @@ def remove_func(name):
         source = source[:start] + source[end + 1:]
 
 match_start = source.find("func _start_quick_match(")
-match_end = source.find("\\nfunc ", match_start + 1)
+match_end = source.find("\nfunc ", match_start + 1)
 if match_start < 0 or match_end < 0:
     raise SystemExit("Could not locate quick-match function")
 quick_match = source[match_start:match_end]
-old_payload = '"mode": "classic",\\n        "rating": competitive_rating'
-new_payload = '"mode": "classic",\\n        "piece": selected_match_piece,\\n        "rating": competitive_rating'
+old_payload = '"mode": "classic",\n        "rating": competitive_rating'
+new_payload = '"mode": "classic",\n        "piece": selected_match_piece,\n        "rating": competitive_rating'
 if old_payload not in quick_match:
     raise SystemExit("Quick-match piece payload anchor missing")
 quick_match = quick_match.replace(old_payload, new_payload, 1)
