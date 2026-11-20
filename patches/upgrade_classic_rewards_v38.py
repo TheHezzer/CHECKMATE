@@ -70,9 +70,9 @@ new_result = old_result + '''
             if not account_token.is_empty():
                 _send_matchmaking_request("city_profile", "/city/profile", HTTPClient.METHOD_GET)
 '''
-    if old_result not in s:
-        raise SystemExit("Missing match reward display anchor")
-    s = s.replace(old_result, new_result, 1)
+if old_result not in s:
+    raise SystemExit("Missing match reward display anchor")
+s = s.replace(old_result, new_result, 1)
 
 main.write_text(s, encoding="utf-8")
 
