@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createGameState,getGameState,applyGameMove,passGameTurn,proposeGameMove,castGameVote,sendTeamChat} from "./gameplay.js";
+import {createGameState,getGameState,applyGameMove,passGameTurn,proposeGameMove,castGameVote,castOpeningVote,sendTeamChat} from "./gameplay.js";
 
+function startedMatch(f){
+ const match=startedMatch(f);
+ const now=Date.now();
+ for(let slot=0;slot<5;slot++)castOpeningVote(match,"white-"+slot,"white-0",now);
+ return match;
+}
 function fixture(){
  const roles=["Ладья","Ладья","Конь","Конь","Слон","Слон","Ферзь","Король"];
  const players=[];
@@ -18,7 +24,7 @@ test("creates one pawn and one assigned extra figure per each of 16 players",()=
  assert.equal(game.board.filter(p=>p.team==="black").length,16);
 });
 test("only the active player can move their own piece and white opens",()=>{
- const match={players:fixture().players,game:createGameState(fixture())};
+ const f=fixture();const match=startedMatch(f);
  const wrong=applyGameMove(match,"white-1",{fromFile:1,fromRow:6,toFile:1,toRow:5});
  assert.equal(wrong.status,403);
  const moved=applyGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5});
@@ -141,4 +147,42 @@ test("votes are closed after the 5-second discussion plus 15-second voting windo
  const result=castGameVote(match,"white-1","approve");
  assert.equal(result.error,"VOTE_CLOSED");
  assert.equal(match.game.pendingVote,null);
+});
+
+test("white opening vote lasts 20 seconds and majority chooses the first player",()=>{
+ const f=fixture(),match={players:f.players,game:createGameState(f)},now=Date.now();
+ assert.equal(match.game.activePlayerId,"");
+ assert.equal(match.game.openingVote.expiresAt-match.game.openingVote.createdAt,20000);
+ for(let slot=0;slot<4;slot++)assert.equal(castOpeningVote(match,"white-"+slot,"white-3",now).status,200);
+ assert.equal(match.game.openingVote!==null,true);
+ const chosen=castOpeningVote(match,"white-4","white-3",now);
+ assert.equal(chosen.status,200);
+ assert.equal(match.game.activePlayerId,"white-3");
+ assert.equal(match.game.openingVote,null);
+ assert.equal(match.game.teamClocks.white,600000);
+});
+test("a player who misses 20 seconds is skipped to the next teammate",()=>{
+ const f=fixture(),match=startedMatch(f),now=Date.now();
+ match.game.playerTurnEndsAt=now-1;match.game.clockLastTickAt=now;
+ const state=getGameState(match,"white-0");
+ assert.equal(match.game.activePlayerId,"white-1");
+ assert.equal(state.activeTurnRemainingMs,20000);
+});
+test("team loses when its shared ten-minute clock expires",()=>{
+ const f=fixture(),match=startedMatch(f),now=Date.now();
+ match.game.teamClocks.white=50;match.game.clockLastTickAt=now-100;
+ const state=getGameState(match,"white-0");
+ assert.equal(state.status,"finished");
+ assert.equal(state.result,"timeout");
+ assert.equal(state.winnerTeam,"black");
+ assert.equal(state.teamClocks.white,0);
+});
+test("opening vote auto-selects the most voted player when 20 seconds expire",()=>{
+ const f=fixture(),match={players:f.players,game:createGameState(f)},now=Date.now();
+ castOpeningVote(match,"white-0","white-2",now);
+ castOpeningVote(match,"white-1","white-2",now);
+ match.game.openingVote.expiresAt=now-1;
+ getGameState(match,"white-0");
+ assert.equal(match.game.activePlayerId,"white-2");
+ assert.equal(match.game.openingVote,null);
 });
