@@ -62,6 +62,17 @@ s = s.replace(
     'Фигуры открываются за XP. Дополнительная боевая фигура покупается за злотые перед классической партией. Скины после покупки остаются навсегда. Закрытые фигуры отмечены замком.',
     'В обычной партии все боевые фигуры доступны сразу и выбираются бесплатно. За злотые можно покупать косметические скины, которые не усиливают фигуры. Прокачка характеристик будет отдельной системой Шахматного города.'
 )
+old_result = '        status_label.text = "ПАРТИЯ ЗАВЕРШЕНА • " + ("ПОБЕДА БЕЛЫХ" if data.get("winnerTeam", "") == "white" else "ПОБЕДА ЧЁРНЫХ" if data.get("winnerTeam", "") == "black" else "НИЧЬЯ") + " • " + result'
+new_result = old_result + '''
+        var reward: Variant = data.get("reward", null)
+        if reward is Dictionary:
+            status_label.text += "\\nТВОЯ НАГРАДА: +%d XP • +%d ЗЛОТЫХ • КАЧЕСТВО %d%%" % [int(reward.get("xp", 0)), int(reward.get("zloty", 0)), int(reward.get("accuracy", 0))]
+            if not account_token.is_empty():
+                _send_matchmaking_request("city_profile", "/city/profile", HTTPClient.METHOD_GET)
+    if old_result not in s:
+        raise SystemExit("Missing match reward display anchor")
+    s = s.replace(old_result, new_result, 1)
+
 main.write_text(s, encoding="utf-8")
 
 print("CHECKMATE v38 client: all Classic pieces are free; selection only chooses the role.")
