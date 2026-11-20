@@ -66,7 +66,7 @@ func _run() -> void:
     game._start_game("Командное голосование")
     game._process_classic_move(4, 6, 4, 5)
     _check(game._get_game_piece_at(4, 5) != null and game.current_team == "black", "team voting mode accepts a legal board move in local rules test")
-    _check(game.team_chat_panel == null or game.team_chat_panel.visible, "team chat remains available in team voting")
+    _check(game.team_chat_label == null or game.team_chat_label.visible, "team chat remains available in team voting")
 
     # Mode selector inventory: identify implemented modes rather than pretending missing modes exist.
     if game.mode_selection_panel == null:
