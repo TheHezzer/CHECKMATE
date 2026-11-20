@@ -19,9 +19,9 @@ rep('''    var intro := _add_label(frame, "Заходи каждый день п
     login_streak_status_label = _add_label(frame, "", Vector2(22, 140), Vector2(1050, 30), 5, Color(0.78,0.88,0.72))
 ''', "login streak header spacing")
 rep('''        var y1 := 0.235 + float(row) * 0.245
-        var y2 := y1 + 0.225
-''','''        var y1 := 0.255 + float(row) * 0.245
         var y2 := y1 + 0.205
+''','''        var y1 := 0.255 + float(row) * 0.245
+        var y2 := y1 + 0.225
 ''', "login streak card grid spacing")
 rep('''        var day_title := _add_label(card, "ДЕНЬ " + str(i + 1), Vector2(8, 8), Vector2(180, 30), 15, PALE_GOLD)
         day_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
