@@ -91,3 +91,28 @@ test("account endpoint rejects missing or invalid bearer token", async () => {
     assert.equal(response.status, 401);
   });
 });
+
+test("only configured admin can grant resources to another account", async () => {
+  const adminPassword = "secure-admin-password-2026";
+  await withAccountServer(async base => {
+    const admin = await post(base, "/accounts/register", { username: "TheHezzer", password: adminPassword });
+    const player = await post(base, "/accounts/register", { username: "TestPlayer", password: "player-password-123" });
+    assert.equal(admin.status, 201);
+    assert.equal(admin.data.account.isAdmin, true);
+    assert.equal(player.data.account.isAdmin, false);
+    const denied = await fetch(base + "/admin/grant", {
+      method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + player.data.token },
+      body: JSON.stringify({ username: "TestPlayer", zloty: 100, xp: 50 })
+    });
+    assert.equal(denied.status, 403);
+    const granted = await fetch(base + "/admin/grant", {
+      method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + admin.data.token },
+      body: JSON.stringify({ username: "TestPlayer", zloty: 1000, xp: 250, gambits: 10 })
+    });
+    assert.equal(granted.status, 200);
+    assert.equal((await granted.json()).wallet.zloty, 13750);
+    const profile = await fetch(base + "/city/profile", { headers: { authorization: "Bearer " + player.data.token } }).then(r => r.json());
+    assert.equal(profile.city.wallet.xp, 1100);
+    assert.equal(profile.city.wallet.gambits, 10);
+  }, { adminUsername: "TheHezzer", adminPassword });
+});
