@@ -291,10 +291,6 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
       const zloty = reward.zloty;
       city.wallet.xp += xp;
       city.wallet.zloty += zloty;
-      account.matches = (account.matches || 0) + 1;
-      if (winnerTeam === "draw") account.draws = (account.draws || 0) + 1;
-      else if (won) account.wins = (account.wins || 0) + 1;
-      else account.losses = (account.losses || 0) + 1;
       results.push({ playerId: account.id, xp, zloty, won, result: reward.result, accuracy: reward.accuracy, moves: reward.moves, captures: reward.captures, checks: reward.checks, voteAccuracy: reward.voteAccuracy, breakdown: reward.breakdown, city: cityPayload(account) });
     }
     if (results.length) await persist();
