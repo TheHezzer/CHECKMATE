@@ -29,11 +29,6 @@ rep('''    if not developer_mode or game_over or local_opening_vote_active:''', 
 rep('''    if developer_mode:
         for entry in local_bot_roster:''', '''    if developer_mode or local_bot_test_active:
         for entry in local_bot_roster:''', 'bot names in turn label')
-rep('''    if not developer_mode or not online_panel or not online_panel.visible:
-        return
-    local_bot_roster.clear()''', '''    if not (developer_mode or local_bot_test_active) or not online_panel or not online_panel.visible:
-        return
-    local_bot_roster.clear()''', 'local bot queue gate')
 rep('''func _developer_test_local_game() -> void:
     if not developer_mode:
         return
