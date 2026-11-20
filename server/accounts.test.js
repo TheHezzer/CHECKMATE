@@ -155,3 +155,25 @@ test("rating settlement updates each account once and applies abandonment penalt
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+
+test("classic match awards zloty and XP as well as rating", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "checkmate-classic-reward-"));
+  const options = { dataFile: path.join(dir, "accounts.json"), tokenSecret: "classic-reward-secret" };
+  try {
+    const { createAccountService } = await import("./accounts.js");
+    const service = createAccountService(options);
+    const created = await service.register({ username: "ClassicReward", password: "classic-pass-123" });
+    const reward = await service.awardMatchById([
+      { playerId: created.body.account.playerId, team: "white", stats: { moves: 12, captures: 2, checks: 1, qualityTotal: 900 } }
+    ], "white", "classic");
+    assert.equal(reward.length, 1);
+    assert.ok(reward[0].xp > 0);
+    assert.ok(reward[0].zloty > 0);
+    const city = await service.cityProfile(created.body.token);
+    assert.equal(city.body.city.wallet.xp, 850 + reward[0].xp);
+    assert.equal(city.body.city.wallet.zloty, 12750 + reward[0].zloty);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
