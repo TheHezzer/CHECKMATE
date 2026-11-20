@@ -71,7 +71,7 @@ rep('''        elif str(item["kind"]) == "pass":
         else:''', "open board skin catalogue")
 
 # Insert the persistent board-skin catalogue before gambit-pack screen construction.
-const anchor = "func _build_gambit_packs_screen() -> void:"
+anchor = "func _build_gambit_packs_screen() -> void:"
 catalogue = """
 func _board_skin_catalogue() -> Array:
     return [
