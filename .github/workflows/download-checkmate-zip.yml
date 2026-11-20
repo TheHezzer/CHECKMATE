@@ -1,5 +1,6 @@
 name: Build CHECKMATE classic v77 — economy, research and shop
 # v76 randomizes local test colors and adds a manual self-play chess test
+# v77 adds the staged city economy and shop interface
 # v66 profile and admin controls
 # v66 bot test fix
 # Rebuild after correcting the v46 patch path.
