@@ -41,13 +41,13 @@ if anchor not in s:
 s = s.replace(anchor, "    _build_season_pass_screen()\n    _build_castle_hub_battle_screen()\n    _build_onboarding_screen()", 1)
 
 # Replace the former city entry point so the city button opens the new castle hub.
-start = s.find("func _open_castle_hub_screen() -> void:")
+start = s.find("func _open_city_screen() -> void:")
 if start < 0:
-    raise SystemExit("City v85: _open_castle_hub_screen not found")
+    raise SystemExit("City v85: _open_city_screen not found")
 end = s.find("\nfunc ", start + 10)
 if end < 0:
-    raise SystemExit("City v85: cannot locate end of _open_castle_hub_screen")
-replacement = """func _open_castle_hub_screen() -> void:
+    raise SystemExit("City v85: cannot locate end of _open_city_screen")
+replacement = """func _open_city_screen() -> void:
     _castle_hub_ensure_state()
     if menu_panel:
         menu_panel.visible = false
