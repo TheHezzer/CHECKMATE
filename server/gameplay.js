@@ -185,8 +185,66 @@ function expirePendingVote(match,now=Date.now()){
   // A tie is not approval: the proposed move is rejected and the turn is passed.
   return finalizeVote(match,approveCount>rejectCount?"approve":"reject");
 }
+function beginTimedGame(state,playerId,now=Date.now()){
+  state.openingVote=null;state.activeTeam="white";state.activePlayerId=playerId;
+  const player=state.players.find(p=>p.playerId===playerId);
+  if(player)state.nextSlot.white=(player.slot+1)%8;
+  state.clockLastTickAt=now;state.playerTurnStartedAt=now;state.playerTurnEndsAt=now+PLAYER_TURN_MS;state.updatedAt=now;
+}
+function resolveOpeningVote(match,now=Date.now()){
+  const state=match?.game,vote=state?.openingVote;if(!vote)return null;
+  const counts=new Map();
+  for(const candidate of Object.values(vote.votes||{}))counts.set(candidate,(counts.get(candidate)||0)+1);
+  let winnerId=vote.defaultPlayerId||state.startingPlayerId,best=-1;
+  for(const player of state.players.filter(p=>p.team==="white").sort((a,b)=>a.slot-b.slot)){
+    const count=counts.get(player.playerId)||0;
+    if(count>best){best=count;winnerId=player.playerId;}
+  }
+  beginTimedGame(state,winnerId,now);return winnerId;
+}
+function skipTimedPlayer(state,now=Date.now()){
+  const current=state.players.find(p=>p.playerId===state.activePlayerId);
+  if(!current){state.status="finished";state.winnerTeam=state.activeTeam==="white"?"black":"white";state.result="timeout";return;}
+  state.passedThisTurn.push(current.playerId);
+  const eligible=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated&&!state.passedThisTurn.includes(p.playerId)).sort((a,b)=>a.slot-b.slot);
+  const next=eligible.find(p=>p.slot>current.slot)||eligible[0];
+  if(next){state.activePlayerId=next.playerId;state.playerTurnStartedAt=now;state.playerTurnEndsAt=now+PLAYER_TURN_MS;}
+  else finishTurn(state,state.activeTeam,current.slot,now);
+  state.updatedAt=now;
+}
+export function advanceGameClock(match,now=Date.now()){
+  const state=match?.game;if(!state||state.status!=="active")return state;
+  if(state.openingVote){if(now>=state.openingVote.expiresAt)resolveOpeningVote(match,now);return state;}
+  const last=Number(state.clockLastTickAt||now),elapsed=Math.max(0,now-last);
+  state.clockLastTickAt=now;
+  state.teamClocks[state.activeTeam]=Math.max(0,Number(state.teamClocks[state.activeTeam]||0)-elapsed);
+  if(state.teamClocks[state.activeTeam]<=0){
+    state.status="finished";state.result="timeout";state.winnerTeam=state.activeTeam==="white"?"black":"white";state.activePlayerId="";state.updatedAt=now;return state;
+  }
+  let guard=0;
+  while(state.status==="active"&&state.playerTurnEndsAt&&now>=state.playerTurnEndsAt&&guard<9){
+    guard++;skipTimedPlayer(state,now);
+  }
+  state.updatedAt=now;return state;
+}
+export function castOpeningVote(match,playerId,candidatePlayerId,now=Date.now()){
+  const state=match?.game;if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  advanceGameClock(match,now);
+  if(!state.openingVote)return{status:409,error:"OPENING_VOTE_CLOSED",state:sanitizeState(state,playerId)};
+  const voter=state.players.find(p=>p.playerId===playerId),candidate=state.players.find(p=>p.playerId===candidatePlayerId);
+  if(!voter||voter.team!=="white"||!candidate||candidate.team!=="white")return{status:403,error:"OPENING_VOTE_NOT_ALLOWED"};
+  if(Object.prototype.hasOwnProperty.call(state.openingVote.votes,playerId))return{status:409,error:"ALREADY_VOTED"};
+  state.openingVote.votes[playerId]=candidatePlayerId;
+  const white=state.players.filter(p=>p.team==="white"&&!p.eliminated);
+  const tally=white.map(p=>({id:p.playerId,count:Object.values(state.openingVote.votes).filter(v=>v===p.playerId).length})).sort((a,b)=>b.count-a.count);
+  if((tally[0]?.count||0)>white.length/2||Object.keys(state.openingVote.votes).length>=white.length)
+    beginTimedGame(state,tally[0]?.id||state.startingPlayerId,now);
+  else state.updatedAt=now;
+  return{status:200,state:sanitizeState(state,playerId)};
+}
 export function getGameState(match,viewerId){
   if(!match?.game)return null;
+  advanceGameClock(match);
   expirePendingVote(match);
   return sanitizeState(match.game,viewerId);
 }
