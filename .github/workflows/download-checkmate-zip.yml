@@ -151,8 +151,8 @@ jobs:
           python "$project_dir/patches/add_offline_admin_bot_login_v62.py"
           cp patches/fix_text_alignment_and_account_layout_v63.py "$project_dir/patches/fix_text_alignment_and_account_layout_v63.py"
           python "$project_dir/patches/fix_text_alignment_and_account_layout_v63.py"
-          cp patches/add_standard_chess_1v1_mode_v65.py "$project_dir/patches/add_standard_chess_1v1_mode_v65.py"
-          python "$project_dir/patches/add_standard_chess_1v1_mode_v65.py"
+          cp patches/add_standard_chess_1v1_mode_v64.py "$project_dir/patches/add_standard_chess_1v1_mode_v64.py"
+          python "$project_dir/patches/add_standard_chess_1v1_mode_v64.py"
           cp patches/fix_menu_account_mode_layout_v65.py "$project_dir/patches/fix_menu_account_mode_layout_v65.py"
           python "$project_dir/patches/fix_menu_account_mode_layout_v65.py"
 
