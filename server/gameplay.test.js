@@ -187,3 +187,15 @@ test("opening vote auto-selects the most voted player when 20 seconds expire",()
  assert.equal(match.game.activePlayerId,"white-2");
  assert.equal(match.game.openingVote,null);
 });
+
+
+test("a disconnected active player is marked abandoned and skipped after heartbeat timeout",()=>{
+ const match=startedMatch(fixture());
+ const current=match.game.players.find(p=>p.playerId===match.game.activePlayerId);
+ assert.ok(current);
+ current.lastSeenAt=Date.now()-46_000;
+ const state=getGameState(match,"black-0");
+ assert.equal(current.abandoned,true);
+ assert.notEqual(state.activePlayerId,current.playerId);
+ assert.equal(state.activeTeam,"white");
+});
