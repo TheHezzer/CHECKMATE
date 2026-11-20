@@ -19,7 +19,8 @@ test("creates one pawn and one assigned extra figure per each of 16 players",()=
  assert.equal(game.board.length,32);
  for(const p of game.players)assert.equal(game.board.filter(x=>x.ownerPlayerId===p.playerId).length,2);
  assert.equal(game.activeTeam,"white");
- assert.equal(game.activePlayerId,"white-0");
+ assert.equal(game.activePlayerId,"");
+ assert.ok(game.openingVote);
  assert.equal(game.board.filter(p=>p.team==="white").length,16);
  assert.equal(game.board.filter(p=>p.team==="black").length,16);
 });
