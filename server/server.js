@@ -271,6 +271,10 @@ export function createMatchmakingServer(options = {}) {
       }
 
       if (req.method === "GET" && url.pathname === "/notifications") {
+        const authorization = String(req.headers.authorization || "");
+        const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+        const authCheck = await accounts.me(token);
+        if (authCheck.status !== 200) return send(res, 401, { error: "UNAUTHORIZED" });
         for (const match of matches.values()) {
           if (match.game?.status === "active") {
             const viewerId = match.game.players[0]?.playerId || "";
@@ -278,8 +282,6 @@ export function createMatchmakingServer(options = {}) {
             await deliverMatchResults(match, accounts);
           }
         }
-        const authorization = String(req.headers.authorization || "");
-        const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
         const result = await accounts.getNotifications(token, Number(url.searchParams.get("limit") || 30));
         return send(res, result.status, result.body);
       }
