@@ -2,7 +2,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { createAccountService } from "./accounts.js";
-import { createGameState, getGameState, applyGameMove, passGameTurn, proposeGameMove, castGameVote, sendTeamChat } from "./gameplay.js";
+import { createGameState, getGameState, applyGameMove, passGameTurn, proposeGameMove, castGameVote, castOpeningVote, sendTeamChat } from "./gameplay.js";
 
 const PORT = Number(process.env.PORT || 8080);
 const QUEUE_TTL_MS = 10 * 60 * 1000;
@@ -263,7 +263,7 @@ export function createMatchmakingServer(options = {}) {
         return send(res,201,{ticket:ticketId,status,pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
       }
 
-      const gameplayRoute=url.pathname.match(/^\/matches\/([0-9a-f-]+)\/(state|move|pass|chat|propose|vote)$/);
+      const gameplayRoute=url.pathname.match(/^\/matches\/([0-9a-f-]+)\/(state|move|pass|chat|propose|vote|opening-vote)$/);
       if(gameplayRoute){
         const match=matches.get(gameplayRoute[1]);
         if(!match)return send(res,404,{error:"MATCH_NOT_FOUND"});
@@ -284,6 +284,10 @@ export function createMatchmakingServer(options = {}) {
         }
         if(req.method!=="POST")return send(res,405,{error:"METHOD_NOT_ALLOWED"});
         const body=await readJson(req);
+        if(action==="opening-vote"){
+          const result=castOpeningVote(match,playerId,String(body.candidatePlayerId||""));
+          return send(res,result.status,result.state||{error:result.error});
+        }
         if(action==="propose"){
           const result=proposeGameMove(match,playerId,body);
           return send(res,result.status,result.state||{error:result.error});
