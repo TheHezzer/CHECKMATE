@@ -119,7 +119,17 @@ test("a tied vote at timeout rejects the proposal and passes the turn",()=>{
  assert.equal(match.game.activeTeam,"white");
  assert.notEqual(match.game.activePlayerId,starter);
 });
-test("votes are closed after the 20-second deadline and are resolved on state refresh",()=>{
+test("discussion lasts five seconds and voting stays closed until it ends",()=>{
+ const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5});
+ const pending=match.game.pendingVote;
+ assert.equal(pending.discussionEndsAt-pending.createdAt,5000);
+ assert.equal(pending.expiresAt-pending.discussionEndsAt,15000);
+ assert.equal(castGameVote(match,"white-1","approve").error,"DISCUSSION_IN_PROGRESS");
+ pending.discussionEndsAt=Date.now()-1;
+ assert.equal(castGameVote(match,"white-1","approve").status,200);
+});
+test("votes are closed after the 5-second discussion plus 15-second voting window and are resolved on state refresh",()=>{
  const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
  proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5});
  match.game.pendingVote.expiresAt=Date.now()-1;
