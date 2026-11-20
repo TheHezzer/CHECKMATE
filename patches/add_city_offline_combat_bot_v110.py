@@ -54,24 +54,24 @@ func _city_offline_start_battle() -> void:
     city_offline_active = true
     city_offline_busy = false
     for cell_key in castle_hub_army.keys():
-        var parts := str(cell_key).split(",")
+        var parts: PackedStringArray = str(cell_key).split(",")
         if parts.size() != 2:
             continue
-        var col := int(parts[0])
-        var row := int(parts[1])
+        var col: int = int(parts[0])
+        var row: int = int(parts[1])
         var piece_name := str(castle_hub_army[cell_key])
-        var tier := mini(int(castle_hub_state.get("castle_level", 1)), int(_piece_progress_data(piece_name).get("tier", 1)))
+        var tier: int = mini(int(castle_hub_state.get("castle_level", 1)), int(_piece_progress_data(piece_name).get("tier", 1)))
         var stats: Dictionary = _piece_progress_defaults(piece_name, tier)
-        var max_hp := maxi(1, int(stats.get("health", 100)))
-        var max_armor := maxi(0, int(stats.get("armor", 0)))
-        var temp_shield := 30 if city_offline_test_shield else 0
+        var max_hp: int = maxi(1, int(stats.get("health", 100)))
+        var max_armor: int = maxi(0, int(stats.get("armor", 0)))
+        var temp_shield: int = 30 if city_offline_test_shield else 0
         city_offline_units[cell_key] = {"name":piece_name,"team":"player","col":col,"row":row,"health":max_hp,"max_health":max_hp,"armor":max_armor,"max_armor":max_armor,"damage":maxi(1,int(stats.get("damage",50))),"shield":temp_shield,"max_shield":temp_shield,"checked":false}
     if city_offline_units.is_empty():
         city_offline_active = false
         _show_notice("Сначала расставь хотя бы одну фигуру на доске замка.")
         return
     # A fixed but varied bot army is generated for every local training match.
-    var enemy_back := ["Ладья","Конь","Слон","Ферзь","Король","Слон","Конь","Ладья"]
+    var enemy_back: Array[String] = ["Ладья","Конь","Слон","Ферзь","Король","Слон","Конь","Ладья"]
     for col in range(8):
         _city_offline_add_bot_unit(col, 0, enemy_back[col])
         _city_offline_add_bot_unit(col, 1, "Пешка")
@@ -87,9 +87,9 @@ func _city_offline_start_battle() -> void:
 
 func _city_offline_add_bot_unit(col: int, row: int, piece_name: String) -> void:
     var stats: Dictionary = _piece_progress_defaults(piece_name, 1)
-    var max_hp := maxi(1, int(stats.get("health", 100)))
-    var max_armor := maxi(0, int(stats.get("armor", 0)))
-    var key := "%d,%d" % [col,row]
+    var max_hp: int = maxi(1, int(stats.get("health", 100)))
+    var max_armor: int = maxi(0, int(stats.get("armor", 0)))
+    var key: String = "%d,%d" % [col,row]
     city_offline_units[key] = {"name":piece_name,"team":"bot","col":col,"row":row,"health":max_hp,"max_health":max_hp,"armor":max_armor,"max_armor":max_armor,"damage":maxi(1,int(stats.get("damage",50))),"shield":0,"max_shield":0,"checked":false}
 
 func _city_offline_build_panel() -> void:
@@ -159,10 +159,15 @@ func _city_offline_build_panel() -> void:
     city_offline_shield_button.pressed.connect(_city_offline_toggle_test_shield)
 
 func _city_offline_toggle_test_shield() -> void:
-    if city_offline_active:
-        _show_notice("Щит задаётся перед началом тренировки.")
-        return
     city_offline_test_shield = not city_offline_test_shield
+    if city_offline_active:
+        for key in city_offline_units.keys():
+            var unit: Dictionary = city_offline_units[key]
+            if unit.get("team")=="player":
+                unit["shield"] = 30 if city_offline_test_shield else 0
+                unit["max_shield"] = int(unit.get("shield",0))
+                city_offline_units[key] = unit
+        _city_offline_refresh()
     if city_offline_shield_button:
         city_offline_shield_button.text = "ТЕСТОВЫЙ ЩИТ: %s" % ("ВКЛ • 30" if city_offline_test_shield else "ВЫКЛ")
  
@@ -176,7 +181,7 @@ func _city_offline_refresh() -> void:
         var cell := city_offline_board_cells[i] as Button
         var col := i%8
         var row := int(i/8)
-        var key := "%d,%d" % [col,row]
+        var key: String = "%d,%d" % [col,row]
         var unit: Dictionary = city_offline_units.get(key,{})
         var light := ((row+col)%2)==0
         var style := StyleBoxFlat.new()
@@ -214,7 +219,7 @@ func _city_offline_refresh() -> void:
 func _city_offline_cell_pressed(col: int, row: int) -> void:
     if not city_offline_active or city_offline_busy or city_offline_turn != "player":
         return
-    var key := "%d,%d" % [col,row]
+    var key: String = "%d,%d" % [col,row]
     var target: Dictionary = city_offline_units.get(key,{})
     if city_offline_selected_key == "":
         if target.is_empty() or target.get("team")!="player":
@@ -254,8 +259,8 @@ func _city_offline_coord(col: int,row: int) -> String:
 func _city_offline_path_clear(source: Dictionary,col: int,row: int) -> bool:
     var dx: int = 1 if col > int(source.get("col",0)) else -1 if col < int(source.get("col",0)) else 0
     var dy: int = 1 if row > int(source.get("row",0)) else -1 if row < int(source.get("row",0)) else 0
-    var x := int(source.get("col",0))+dx
-    var y := int(source.get("row",0))+dy
+    var x: int = int(source.get("col",0))+dx
+    var y: int = int(source.get("row",0))+dy
     while x != col or y != row:
         if city_offline_units.has("%d,%d" % [x,y]):
             return false
@@ -264,24 +269,24 @@ func _city_offline_path_clear(source: Dictionary,col: int,row: int) -> bool:
     return true
 
 func _city_offline_is_legal(source: Dictionary,col: int,row: int,is_attack: bool) -> bool:
-    var sx := int(source.get("col",0))
-    var sy := int(source.get("row",0))
-    var dx := abs(col-sx)
-    var dy := abs(row-sy)
+    var sx: int = int(source.get("col",0))
+    var sy: int = int(source.get("row",0))
+    var dx: int = abs(col-sx)
+    var dy: int = abs(row-sy)
     if dx==0 and dy==0:
         return false
-    var kind := str(source.get("name",""))
+    var kind: String = str(source.get("name",""))
     if kind=="Конь":
         return (dx==1 and dy==2) or (dx==2 and dy==1)
     if kind=="Пешка":
-        var direction := -1 if source.get("team")=="player" else 1
+        var direction: int = -1 if source.get("team")=="player" else 1
         if is_attack:
             return dx==1 and row-sy==direction
         if dx!=0:
             return false
         if row-sy==direction:
             return true
-        var start_row := 6 if source.get("team")=="player" else 1
+        var start_row: int = 6 if source.get("team")=="player" else 1
         return sy==start_row and row-sy==2*direction and _city_offline_path_clear(source,col,row)
     if kind=="Слон":
         return dx==dy and _city_offline_path_clear(source,col,row)
@@ -305,16 +310,16 @@ func _city_offline_attack(attacker_key: String,target_key: String) -> void:
         if _city_offline_non_king_count_team(str(defender.get("team",""))) == 0:
             _city_offline_end_battle(str(defender.get("team",""))=="bot")
         return
-    var damage := int(attacker.get("damage",1))
-    var shield_before := int(defender.get("shield",0))
-    var shield_hit := mini(shield_before,damage)
+    var damage: int = int(attacker.get("damage",1))
+    var shield_before: int = int(defender.get("shield",0))
+    var shield_hit: int = mini(shield_before,damage)
     defender["shield"] = shield_before-shield_hit
     damage -= shield_hit
-    var armor_before := int(defender.get("armor",0))
-    var armor_hit := mini(armor_before,damage)
+    var armor_before: int = int(defender.get("armor",0))
+    var armor_hit: int = mini(armor_before,damage)
     defender["armor"] = armor_before-armor_hit
     damage -= armor_hit
-    var hp_hit := mini(int(defender.get("health",0)),damage)
+    var hp_hit: int = mini(int(defender.get("health",0)),damage)
     defender["health"] = int(defender.get("health",0))-hp_hit
     city_offline_units[target_key] = defender
     _city_offline_log("%s атакует %s: щит −%d, броня −%d, здоровье −%d." % [str(attacker.get("name","Фигура")),str(defender.get("name","Фигура")),shield_hit,armor_hit,hp_hit])
@@ -362,7 +367,7 @@ func _city_offline_refresh_armor(team: String) -> void:
         var unit: Dictionary = city_offline_units[key]
         if unit.get("team")!=team:
             continue
-        var regen := maxi(1,int(unit.get("max_armor",0))*10/100)
+        var regen: int = maxi(1,int(unit.get("max_armor",0))*10/100)
         unit["armor"] = mini(int(unit.get("max_armor",0)),int(unit.get("armor",0))+regen)
         city_offline_units[key] = unit
     _city_offline_log("Броня армии %s восстановлена на 10%%." % ("игрока" if team=="player" else "бота"))
@@ -398,7 +403,7 @@ func _city_offline_bot_turn() -> void:
             var source: Dictionary = city_offline_units[from_key]
             for row in range(0,4):
                 for col in range(8):
-                    var key := "%d,%d" % [col,row]
+                    var key: String = "%d,%d" % [col,row]
                     if city_offline_units.has(key):
                         continue
                     if _city_offline_is_legal(source,col,row,false):
