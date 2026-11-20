@@ -113,12 +113,8 @@ func _cast_opening_first_move_vote() -> void:
         if opening_vote_option.selected < 0:
             return
         var candidate_index := opening_vote_option.get_item_id(opening_vote_option.selected)
-        var white_players: Array = []
-        for player in local_bot_roster:
-            if str(player.get("team", "")) == "white":
-                white_players.append(player)
-        if candidate_index >= 1 and candidate_index <= white_players.size():
-            _send_matchmaking_request("game_opening_vote", "/matches/" + online_match_id + "/opening-vote", HTTPClient.METHOD_POST, {"candidatePlayerId": str(white_players[candidate_index - 1].get("playerId", ""))})
+        if candidate_index >= 0 and candidate_index < opening_vote_candidates.size():
+            _send_matchmaking_request("game_opening_vote", "/matches/" + online_match_id + "/opening-vote", HTTPClient.METHOD_POST, {"candidatePlayerId": str(opening_vote_candidates[candidate_index].get("playerId", ""))})
         return
     if not local_opening_vote_active:
         return
@@ -237,9 +233,11 @@ rep('''    _refresh_team_turn_label()
             opening_vote_button.visible = local_player_team == "white" and str(opening_vote.get("viewerVote", "")).is_empty()
         if opening_vote_option:
             opening_vote_option.clear()
-            for candidate in opening_vote.get("eligiblePlayers", []):
+            opening_vote_candidates = opening_vote.get("eligiblePlayers", [])
+            for index in range(opening_vote_candidates.size()):
+                var candidate: Dictionary = opening_vote_candidates[index]
                 opening_vote_option.add_item(str(candidate.get("name", "Игрок %d" % (int(candidate.get("slot", 0)) + 1))))
-                opening_vote_option.set_item_id(opening_vote_option.item_count - 1, int(candidate.get("slot", 0)))
+                opening_vote_option.set_item_id(opening_vote_option.item_count - 1, index)
             opening_vote_option.select(0 if opening_vote_option.item_count > 0 else -1)
     if data.get("status", "active") == "finished":
 ''', "online clock and opening vote HUD")
