@@ -302,6 +302,8 @@ func _city_offline_attack(attacker_key: String,target_key: String) -> void:
         defender["checked"] = true
         city_offline_units[target_key] = defender
         _city_offline_log("ШАХ! Король не вступает в дуэль и не получает прямой урон.")
+        if _city_offline_non_king_count_team(str(defender.get("team",""))) == 0:
+            _city_offline_end_battle(str(defender.get("team",""))=="bot")
         return
     var damage := int(attacker.get("damage",1))
     var shield_before := int(defender.get("shield",0))
@@ -325,6 +327,13 @@ func _city_offline_attack(attacker_key: String,target_key: String) -> void:
     elif _city_offline_count_team("player")==0:
         _city_offline_end_battle(false)
 
+func _city_offline_non_king_count_team(team: String) -> int:
+    var count := 0
+    for unit in city_offline_units.values():
+        if unit.get("team")==team and unit.get("name")!="Король":
+            count += 1
+    return count
+
 func _city_offline_count_team(team: String) -> int:
     var count := 0
     for unit in city_offline_units.values():
@@ -345,7 +354,7 @@ func _city_offline_finish_turn(team: String) -> void:
     else:
         city_offline_turn = "player"
         city_offline_status.text = "ТВОЙ ХОД"
-        city_offline_refresh_armor("bot")
+        _city_offline_refresh_armor("bot")
         _city_offline_refresh()
 
 func _city_offline_refresh_armor(team: String) -> void:
@@ -404,7 +413,7 @@ func _city_offline_bot_turn() -> void:
             city_offline_units[str(chosen[1])] = source
             _city_offline_log("Бот переместил %s на %s." % [str(source.get("name","Фигура")),_city_offline_coord(int(parts[0]),int(parts[1]))])
     if city_offline_active:
-        city_offline_refresh_armor("bot")
+        _city_offline_refresh_armor("bot")
     city_offline_busy = false
     city_offline_turn = "player"
     city_offline_status.text = "ТВОЙ ХОД"
