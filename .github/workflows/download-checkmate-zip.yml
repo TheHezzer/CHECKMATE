@@ -1,0 +1,217 @@
+name: Build CHECKMATE classic v76 — random sides and self-play test
+# v76 randomizes local test colors and adds a manual self-play chess test
+# v66 profile and admin controls
+# v66 bot test fix
+# Rebuild after correcting the v46 patch path.
+
+concurrency:
+  group: checkmate-build-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - splash-update
+    paths:
+      - '.github/workflows/download-checkmate-zip.yml'
+      - 'patches/**'
+      - 'server/**'
+      - '*.zip'
+
+permissions:
+  contents: write
+
+jobs:
+  build-project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test matchmaking service
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test --prefix server
+
+      - name: Extract and patch project
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=( *.zip )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No source ZIP found in repository root."
+            exit 1
+          fi
+          mkdir -p patched
+          unzip -q "${files[0]}" -d patched
+          project_file="$(find patched -name project.godot -print -quit)"
+          if [ -z "$project_file" ]; then
+            echo "project.godot was not found in source archive."
+            exit 1
+          fi
+          project_dir="$(dirname "$project_file")"
+          mkdir -p "$project_dir/patches"
+          cp patches/apply_patch.py "$project_dir/patches/apply_patch.py"
+          cp patches/add_modes_screen.py "$project_dir/patches/add_modes_screen.py"
+          cp patches/add_classic_turns.py "$project_dir/patches/add_classic_turns.py"
+          cp patches/add_classic_rules.py "$project_dir/patches/add_classic_rules.py"
+          cp patches/add_classic_endgame.py "$project_dir/patches/add_classic_endgame.py"
+          cp patches/add_classic_draws.py "$project_dir/patches/add_classic_draws.py"
+          cp patches/add_online_rooms.py "$project_dir/patches/add_online_rooms.py"
+          cp patches/add_matchmaking_client.py "$project_dir/patches/add_matchmaking_client.py"
+          cp patches/add_persistent_rating.py "$project_dir/patches/add_persistent_rating.py"
+          cp patches/add_party_flow_v26.py "$project_dir/patches/add_party_flow_v26.py"
+          cp patches/add_purchase_refund_v27.py "$project_dir/patches/add_purchase_refund_v27.py"
+          cp patches/fix_mobile_gameplay_v28.py "$project_dir/patches/fix_mobile_gameplay_v28.py"
+          cp patches/add_matchmaking_room_v29.py "$project_dir/patches/add_matchmaking_room_v29.py"
+          cp patches/add_classic_lobby_v30.py "$project_dir/patches/add_classic_lobby_v30.py"
+          cp patches/add_piece_roles_v31.py "$project_dir/patches/add_piece_roles_v31.py"
+          cp patches/add_main_shelf_and_mobile_board_v32.py "$project_dir/patches/add_main_shelf_and_mobile_board_v32.py"
+          cp patches/add_first_run_tutorial_v33.py "$project_dir/patches/add_first_run_tutorial_v33.py"
+          cp patches/add_classic_rules_v34.py "$project_dir/patches/add_classic_rules_v34.py"
+          cp patches/add_random_team_colors_v35.py "$project_dir/patches/add_random_team_colors_v35.py"
+          cp patches/fix_online_economy_v37.py "$project_dir/patches/fix_online_economy_v37.py"
+          cp patches/upgrade_classic_rewards_v38.py "$project_dir/patches/upgrade_classic_rewards_v42.py"
+          cp patches/connect_performance_rewards_v38.py "$project_dir/patches/connect_performance_rewards_v42.py"
+          cp patches/connect_team_voting_v40.py "$project_dir/patches/connect_team_voting_v40.py"
+          cp patches/connect_team_voting_timer_v41.py "$project_dir/patches/connect_team_voting_timer_v41.py"
+          cp patches/connect_team_voting_phases_v42.py "$project_dir/patches/connect_team_voting_phases_v42.py"
+          for i in {1..8}; do cp "patches/add_online_gameplay_city_v36.part${i}" "$project_dir/patches/add_online_gameplay_city_v36.part${i}"; done
+          python "$project_dir/patches/apply_patch.py"
+          python "$project_dir/patches/add_modes_screen.py"
+          python "$project_dir/patches/add_classic_turns.py"
+          python "$project_dir/patches/add_classic_rules.py"
+          python "$project_dir/patches/add_classic_endgame.py"
+          python "$project_dir/patches/add_classic_draws.py"
+          python "$project_dir/patches/add_online_rooms.py"
+          python "$project_dir/patches/add_matchmaking_client.py"
+          python "$project_dir/patches/add_persistent_rating.py"
+          python "$project_dir/patches/add_party_flow_v26.py"
+          python "$project_dir/patches/add_purchase_refund_v27.py"
+          python "$project_dir/patches/fix_mobile_gameplay_v28.py"
+          python "$project_dir/patches/add_matchmaking_room_v29.py"
+          python "$project_dir/patches/add_classic_lobby_v30.py"
+          python "$project_dir/patches/add_piece_roles_v31.py"
+          python "$project_dir/patches/add_main_shelf_and_mobile_board_v32.py"
+          python "$project_dir/patches/add_first_run_tutorial_v33.py"
+          python "$project_dir/patches/add_classic_rules_v34.py"
+          python "$project_dir/patches/add_random_team_colors_v35.py"
+          cat "$project_dir"/patches/add_online_gameplay_city_v36.part{1..8} > "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64"
+          base64 -d "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64" | gzip -t
+          base64 -d "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64" | gzip -d > "$project_dir/patches/add_online_gameplay_city_v36.py"
+          python "$project_dir/patches/add_online_gameplay_city_v36.py"
+          python "$project_dir/patches/fix_online_economy_v37.py"
+          python "$project_dir/patches/upgrade_classic_rewards_v42.py"
+          python "$project_dir/patches/connect_performance_rewards_v42.py"
+          python "$project_dir/patches/connect_team_voting_v40.py"
+          python "$project_dir/patches/connect_team_voting_timer_v41.py"
+          python "$project_dir/patches/connect_team_voting_phases_v42.py"
+          cp patches/add_match_results_v43.py "$project_dir/patches/add_match_results_v43.py"
+          python "$project_dir/patches/add_match_results_v43.py"
+          cp patches/add_match_history_v44.py "$project_dir/patches/add_match_history_v44.py"
+          python "$project_dir/patches/add_match_history_v44.py"
+          cp patches/add_checkmate_v45.py "$project_dir/patches/add_checkmate_v45.py"
+          for i in {1..6}; do cp "patches/v45_payload_${i}.b64" "$project_dir/patches/v45_payload_${i}.b64"; done
+          python "$project_dir/patches/add_checkmate_v45.py"
+          cp patches/add_account_avatar_v46.py "$project_dir/patches/add_account_avatar_v46.py"
+          python "$project_dir/patches/add_account_avatar_v46.py"
+          cp patches/clean_main_menu_v47.py "$project_dir/patches/clean_main_menu_v47.py"
+          python "$project_dir/patches/clean_main_menu_v47.py"
+          cp patches/restore_landscape_v48.py "$project_dir/patches/restore_landscape_v48.py"
+          python "$project_dir/patches/restore_landscape_v48.py"
+          cp patches/fix_accounts_and_developer_test_v49.py "$project_dir/patches/fix_accounts_and_developer_test_v49.py"
+          cp patches/upgrade_menu_camera_v50.py "$project_dir/patches/upgrade_menu_camera_v50.py"
+          python "$project_dir/patches/upgrade_menu_camera_v50.py"
+          python "$project_dir/patches/fix_accounts_and_developer_test_v49.py"
+          cp patches/build_3d_main_hall_v51.py "$project_dir/patches/build_3d_main_hall_v51.py"
+          python "$project_dir/patches/build_3d_main_hall_v51.py"
+          cp patches/expand_figures_and_global_type_v52.py "$project_dir/patches/expand_figures_and_global_type_v52.py"
+          python "$project_dir/patches/expand_figures_and_global_type_v52.py"
+          cp patches/fix_team_piece_control_and_bot_ai_v53.py "$project_dir/patches/fix_team_piece_control_and_bot_ai_v53.py"
+          python "$project_dir/patches/fix_team_piece_control_and_bot_ai_v53.py"
+          cp patches/fix_bot_same_team_turns_v54.py "$project_dir/patches/fix_bot_same_team_turns_v54.py"
+          python "$project_dir/patches/fix_bot_same_team_turns_v54.py"
+          cp patches/add_team_clocks_and_opening_vote_v55.py "$project_dir/patches/add_team_clocks_and_opening_vote_v55.py"
+          python "$project_dir/patches/add_team_clocks_and_opening_vote_v55.py"
+          cp patches/polish_menu_account_admin_v56.py "$project_dir/patches/polish_menu_account_admin_v56.py"
+          python "$project_dir/patches/polish_menu_account_admin_v56.py"
+          cp patches/polish_ui_piece_selection_v57.py "$project_dir/patches/polish_ui_piece_selection_v57.py"
+          python "$project_dir/patches/polish_ui_piece_selection_v57.py"
+          cp patches/polish_profile_and_admin_tools_v58.py "$project_dir/patches/polish_profile_and_admin_tools_v58.py"
+          python "$project_dir/patches/polish_profile_and_admin_tools_v58.py"
+          cp patches/add_temporary_offline_bot_mode_v59.py "$project_dir/patches/add_temporary_offline_bot_mode_v59.py"
+          python "$project_dir/patches/add_temporary_offline_bot_mode_v59.py"
+          cp patches/polish_menu_rating_left_cards_v60.py "$project_dir/patches/polish_menu_rating_left_cards_v60.py"
+          python "$project_dir/patches/polish_menu_rating_left_cards_v60.py"
+          cp patches/polish_preview_account_form_v61.py "$project_dir/patches/polish_preview_account_form_v61.py"
+          python "$project_dir/patches/polish_preview_account_form_v61.py"
+          cp patches/add_offline_admin_bot_login_v62.py "$project_dir/patches/add_offline_admin_bot_login_v62.py"
+          python "$project_dir/patches/add_offline_admin_bot_login_v62.py"
+          cp patches/fix_text_alignment_and_account_layout_v63.py "$project_dir/patches/fix_text_alignment_and_account_layout_v63.py"
+          python "$project_dir/patches/fix_text_alignment_and_account_layout_v63.py"
+          cp patches/add_standard_chess_1v1_mode_v64.py "$project_dir/patches/add_standard_chess_1v1_mode_v64.py"
+          python "$project_dir/patches/add_standard_chess_1v1_mode_v64.py"
+          cp patches/fix_menu_account_mode_layout_v65.py "$project_dir/patches/fix_menu_account_mode_layout_v65.py"
+          python "$project_dir/patches/fix_menu_account_mode_layout_v65.py"
+          cp patches/add_piece_progression_wallet_v66.py "$project_dir/patches/add_piece_progression_wallet_v66.py"
+          python "$project_dir/patches/add_piece_progression_wallet_v66.py"
+          cp patches/add_start_button_mode_selection_v67.py "$project_dir/patches/add_start_button_mode_selection_v67.py"
+          python "$project_dir/patches/add_start_button_mode_selection_v67.py"
+          cp patches/add_ready_vote_hud_camera_v68.py "$project_dir/patches/add_ready_vote_hud_camera_v68.py"
+          python "$project_dir/patches/add_ready_vote_hud_camera_v68.py"
+          cp patches/fix_offline_controls_v69.py "$project_dir/patches/fix_offline_controls_v69.py"
+          python "$project_dir/patches/fix_offline_controls_v69.py"
+          cp patches/resize_wallet_and_left_cards_v70.py "$project_dir/patches/resize_wallet_and_left_cards_v70.py"
+          python "$project_dir/patches/resize_wallet_and_left_cards_v70.py"
+          cp patches/fix_preparation_piece_repurchase_v71.py "$project_dir/patches/fix_preparation_piece_repurchase_v71.py"
+          python "$project_dir/patches/fix_preparation_piece_repurchase_v71.py"
+          cp patches/fix_menu_board_remember_v72.py "$project_dir/patches/fix_menu_board_remember_v72.py"
+          python "$project_dir/patches/fix_menu_board_remember_v72.py"
+          cp patches/readable_remember_me_checkbox_v73.py "$project_dir/patches/readable_remember_me_checkbox_v73.py"
+          python "$project_dir/patches/readable_remember_me_checkbox_v73.py"
+          cp patches/resize_piece_silhouettes_left_cards_v74.py "$project_dir/patches/resize_piece_silhouettes_left_cards_v74.py"
+          python "$project_dir/patches/resize_piece_silhouettes_left_cards_v74.py"
+          cp patches/add_city_research_and_move_hints_v75.py "$project_dir/patches/add_city_research_and_move_hints_v75.py"
+          python "$project_dir/patches/add_city_research_and_move_hints_v75.py"
+          cp patches/random_color_and_self_play_test_v76.py "$project_dir/patches/random_color_and_self_play_test_v76.py"
+          python "$project_dir/patches/random_color_and_self_play_test_v76.py"
+
+          GODOT_VERSION="4.4.1"
+          curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
+          unzip -q godot.zip -d godot-bin
+          GODOT_BIN="$GITHUB_WORKSPACE/godot-bin/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --headless --editor --path "$project_dir" --quit 2>&1 | tee godot-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" godot-import.log; then
+            echo "Godot editor/import validation reported errors."
+            exit 1
+          fi
+          "$GODOT_BIN" --headless --path "$project_dir" --quit-after 5 2>&1 | tee godot-runtime.log
+          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" godot-runtime.log; then
+            echo "Godot runtime validation reported errors."
+            exit 1
+          fi
+
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v76.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v76.zip"
+          mkdir -p builds
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v76.zip" builds/CHECKMATE_classic_v76.zip
+
+      - name: Save build ZIP in repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Save CHECKMATE classic v76 build"
+          branch: splash-update
+          file_pattern: builds/CHECKMATE_classic_v76.zip
+
+      - name: Upload updated CHECKMATE project
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHECKMATE-classic-v76
+          path: CHECKMATE_classic_v76.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
