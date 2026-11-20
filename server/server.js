@@ -209,6 +209,11 @@ export function createMatchmakingServer(options = {}) {
         const result=await accounts.cityProfile(accountToken);
         return send(res,result.status,result.body);
       }
+      if(req.method==="POST"&&url.pathname==="/admin/grant"){
+        const body=await readJson(req);
+        const result=await accounts.adminGrantResources(accountToken,body);
+        return send(res,result.status,result.body);
+      }
       if(req.method==="POST"&&url.pathname==="/city/unlock-piece"){
         const body=await readJson(req);
         const result=await accounts.cityUnlockPiece(accountToken,body.piece);
