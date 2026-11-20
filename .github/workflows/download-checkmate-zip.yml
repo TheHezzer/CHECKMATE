@@ -240,8 +240,8 @@ jobs:
           python "$project_dir/patches/fix_queue_standard_mode_hud_v102.py"
           cp patches/make_main_menu_cards_clickable_v103.py "$project_dir/patches/make_main_menu_cards_clickable_v103.py"
           python "$project_dir/patches/make_main_menu_cards_clickable_v103.py"
-          cp patches/preserve_match_figure_purchases_v105.py "$project_dir/patches/preserve_match_figure_purchases_v105.py"
-          python "$project_dir/patches/preserve_match_figure_purchases_v105.py"
+          cp patches/preserve_match_figure_purchases_v104.py "$project_dir/patches/preserve_match_figure_purchases_v104.py"
+          python "$project_dir/patches/preserve_match_figure_purchases_v104.py"
           cp patches/fix_gameplay_ui_and_research_layout_v105.py "$project_dir/patches/fix_gameplay_ui_and_research_layout_v105.py"
           python "$project_dir/patches/fix_gameplay_ui_and_research_layout_v105.py"
 
