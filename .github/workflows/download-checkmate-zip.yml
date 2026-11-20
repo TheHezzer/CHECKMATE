@@ -115,8 +115,8 @@ jobs:
           python "$project_dir/patches/add_checkmate_v45.py"
           cp patches/add_account_avatar_v46.py "$project_dir/patches/add_account_avatar_v46.py"
           python "$project_dir/patches/add_account_avatar_v46.py"
-          cp patches/clean_main_menu_v48.py "$project_dir/patches/clean_main_menu_v48.py"
-          python "$project_dir/patches/clean_main_menu_v48.py"
+          cp patches/clean_main_menu_v47.py "$project_dir/patches/clean_main_menu_v47.py"
+          python "$project_dir/patches/clean_main_menu_v47.py"
           cp patches/restore_landscape_v48.py "$project_dir/patches/restore_landscape_v48.py"
           python "$project_dir/patches/restore_landscape_v48.py"
 
