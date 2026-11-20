@@ -19,9 +19,13 @@ const CLASSIC_MATCH_SIZE = 16;
 const tickets = new Map();
 const waiting = new Map();
 
-function cleanExpired(now = Date.now()) {
+async function cleanExpired(now = Date.now(), accounts = null) {
   for (const [id, ticket] of tickets) {
     if (ticket.expiresAt <= now) {
+      if (accounts && ticket.purchaseCost > 0 && !ticket.purchaseCommitted && !ticket.purchaseRefunded && ["waiting","waiting_piece_slot"].includes(ticket.status)) {
+        await accounts.refundClassicMatchPieceById(ticket.playerId, ticket.purchaseCost);
+        ticket.purchaseRefunded = true;
+      }
       tickets.delete(id);
       if (["waiting","waiting_piece_slot"].includes(ticket.status)) {
         const queue = waiting.get(ticket.key);
@@ -160,7 +164,7 @@ function tryMatch(ticket, now=Date.now()) {
   const queue=waiting.get(ticket.key);
   for(const p of candidates.filter(p=>selectedIds.has(p.playerId))){
     if(queue)queue.delete(p.id);
-    p.status="matched";p.matchId=matchId;p.players=roster;
+    p.status="matched";p.matchId=matchId;p.players=roster;p.purchaseCommitted=true;
     const entry=roster.find(x=>x.playerId===p.playerId);p.team=entry.team;p.slot=entry.slot;p.pieceSlot=entry.pieceSlot;
     p.gameServerHost=match.gameServerHost;p.gameServerPort=match.gameServerPort;p.startingPlayerId=match.startingPlayerId;p.playerSessionToken=match.sessionTokens.get(p.playerId);p.expiresAt=now+QUEUE_TTL_MS;
   }
@@ -173,7 +177,7 @@ export function createMatchmakingServer(options = {}) {
   return http.createServer(async (req, res) => {
     if (req.method === "OPTIONS") return send(res, 204, {});
     const url = new URL(req.url, "http://localhost");
-    cleanExpired();
+    await cleanExpired(Date.now(), accounts);
 
     if (req.method === "GET" && url.pathname === "/health") {
       return send(res, 200, { ok: true, service: "CHECKMATE matchmaking", version: 2 });
@@ -241,8 +245,14 @@ export function createMatchmakingServer(options = {}) {
         if(!playerId||!mode||!ALLOWED_SECOND_PIECES.has(piece))return send(res,400,{error:"INVALID_QUEUE_DATA"});
         const existing=[...tickets.values()].find(t=>t.playerId===playerId&&["waiting","waiting_piece_slot"].includes(t.status));
         if(existing)return send(res,409,{error:"ALREADY_IN_QUEUE",ticket:existing.id});
+        let purchaseCost=0;
+        if(bearer){
+          const reservation=await accounts.reserveClassicMatchPiece(bearer,piece);
+          if(reservation.status!==200)return send(reservation.status,reservation.body);
+          purchaseCost=Number(reservation.body.cost||0);
+        }
         const ticketId=crypto.randomUUID();
-        const ticket={id:ticketId,playerId,playerName,piece,key:mode,status:"waiting",rating,createdAt:Date.now(),expiresAt:Date.now()+QUEUE_TTL_MS};
+        const ticket={id:ticketId,playerId,playerName,piece,key:mode,status:"waiting",rating,purchaseCost,purchaseCommitted:false,purchaseRefunded:false,createdAt:Date.now(),expiresAt:Date.now()+QUEUE_TTL_MS};
         tickets.set(ticketId,ticket);
         const queue=waiting.get(mode)||new Set();queue.add(ticketId);waiting.set(mode,queue);
         tryMatch(ticket);
@@ -297,8 +307,12 @@ export function createMatchmakingServer(options = {}) {
           if (queue.size === 0) waiting.delete(ticket.key);
         }
         ticket.status = "cancelled";
+        if(ticket.purchaseCost>0&&!ticket.purchaseCommitted&&!ticket.purchaseRefunded){
+          await accounts.refundClassicMatchPieceById(ticket.playerId,ticket.purchaseCost);
+          ticket.purchaseRefunded=true;
+        }
         ticket.expiresAt = Date.now() + QUEUE_TTL_MS;
-        return send(res, 200, { cancelled: true, status: "cancelled" });
+        return send(res, 200, { cancelled: true, status: "cancelled", purchaseRefunded: ticket.purchaseRefunded });
       }
 
       const queuePrefix="/matchmaking/queue/";
