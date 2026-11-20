@@ -228,11 +228,16 @@ export function createMatchmakingServer(options = {}) {
 
       if (req.method === "POST" && url.pathname === "/matchmaking/queue") {
         const body=await readJson(req);
-        const playerId=String(body.playerId||"").trim().slice(0,64);
-        const playerName=String(body.playerName||("Игрок-"+playerId.slice(0,5))).trim().slice(0,20)||"Игрок";
+        const authorization=String(req.headers.authorization||"");
+        const bearer=authorization.startsWith("Bearer ")?authorization.slice(7):"";
+        const authenticated=bearer?await accounts.me(bearer):null;
+        if(bearer&&authenticated?.status!==200)return send(res,401,{error:"UNAUTHORIZED"});
+        const account=authenticated?.body?.account;
+        const playerId=String(account?.playerId||body.playerId||"").trim().slice(0,64);
+        const playerName=String(account?.username||body.playerName||("Игрок-"+playerId.slice(0,5))).trim().slice(0,20)||"Игрок";
         const piece=String(body.piece||"Конь").trim();
         const mode=String(body.mode||"classic").trim().slice(0,32);
-        const rating=normalizeRating(body.rating??1000);
+        const rating=normalizeRating(account?.rating??body.rating??1000);
         if(!playerId||!mode||!ALLOWED_SECOND_PIECES.has(piece))return send(res,400,{error:"INVALID_QUEUE_DATA"});
         const existing=[...tickets.values()].find(t=>t.playerId===playerId&&["waiting","waiting_piece_slot"].includes(t.status));
         if(existing)return send(res,409,{error:"ALREADY_IN_QUEUE",ticket:existing.id});
@@ -266,6 +271,10 @@ export function createMatchmakingServer(options = {}) {
         const body=await readJson(req);
         if(action==="move"){
           const result=applyGameMove(match,playerId,body);
+          if(result.status===200&&match.game.status==="finished"&&!match.rewardsPaid){
+            await accounts.awardMatchById(match.game.players,match.game.winnerTeam);
+            match.rewardsPaid=true;
+          }
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="pass"){
