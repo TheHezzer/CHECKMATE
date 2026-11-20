@@ -9,7 +9,7 @@ def rep(old, new, label):
         raise SystemExit("CHECKMATE v114 missing anchor: " + label)
     s = s.replace(old, new, 1)
 
-rep('''    var intro := _add_label(frame, "Заходи каждый день и забирай награды. Пропуск дня сбрасывает серию.", Vector2(22, 70), Vector2(850, 48), 15, Color(0.84,0.81,0.74))
+rep('''    var intro := _add_label(frame, "Заходи каждый день подряд и забирай всё более ценные награды. Пропуск дня сбрасывает серию.", Vector2(22, 70), Vector2(850, 48), 15, Color(0.84,0.81,0.74))
     intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
     login_streak_status_label = _add_label(frame, "", Vector2(22, 128), Vector2(850, 34), 17, Color(0.78,0.88,0.72))
