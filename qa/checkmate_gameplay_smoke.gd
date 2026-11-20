@@ -133,7 +133,7 @@ func _run() -> void:
                     for tr in range(8):
                         if fc == tc and fr == tr:
                             continue
-                        var target := game._get_game_piece_at(tc, tr)
+                        var target: Node3D = game._get_game_piece_at(tc, tr)
                         if target != null and str(target.get_meta("team")) == game.current_team:
                             continue
                         if game._is_valid_classic_move(kind, game.current_team, fc, fr, tc, tr, target) and game._move_keeps_king_safe(piece, tc, tr, target):
