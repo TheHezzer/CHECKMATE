@@ -1,0 +1,1 @@
+Trigger a fresh serialized GitHub Actions visual review for CHECKMATE v97 after removing the concurrent auto-commit step. The build ZIP and screenshots/video are retained as workflow artifacts.
