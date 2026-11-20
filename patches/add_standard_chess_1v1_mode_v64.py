@@ -52,6 +52,10 @@ mode_body = '''func _build_mode_selection_screen() -> void:
 '''
 replace_func("_build_mode_selection_screen", "_refresh_mode_selection", mode_body)
 
+# Restore the card click handler removed when replacing the mode screen functions.
+if "func _select_mode_card(mode_name: String) -> void:" not in s:
+    s = s.replace("func _refresh_mode_selection() -> void:", "func _select_mode_card(mode_name: String) -> void:\n    selected_mode = mode_name\n    _refresh_mode_selection()\n\nfunc _refresh_mode_selection() -> void:", 1)
+
 refresh_body = '''func _refresh_mode_selection() -> void:
     var names := ["Классика", "Командное голосование", "Стандартные шахматы"]
     var captions := [
