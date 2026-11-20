@@ -51,16 +51,16 @@ replace_once(
 '''        "Игрок предлагает ход, а союзники обсуждают и голосуют. Большинство принимает решение; точные голоса влияют на бонус к награде.",''',
 "accurate voting description")
 
-replace_once(
-'''        if index < 0 or index > 0:
-            index = 0
-            selected_mode = names[0]
-        mode_description_label.text = captions[index] + ("\n\nОстальные режимы подключим после завершения классики." if index == 0 else "")''',
-'''        if index < 0 or index > 1:
-            index = 0
-            selected_mode = names[0]
-        mode_description_label.text = captions[index] + ("\n\nРешение принимается большинством голосов команды." if index == 1 else "\n\nРежимы с несколькими фигурами подключим позже." if index == 0 else "")''',
-"mode description")
+old_condition = "if index < 0 or index > 0:"
+if old_condition in s:
+    s = s.replace(old_condition, "if index < 0 or index > 1:", 1)
+elif "if index < 0 or index > 1:" not in s:
+    raise SystemExit("mode selection index guard not found")
+s = s.replace(
+    "Игрок предлагает ход, а союзники обсуждают и голосуют. За правильное командное решение предусмотрен бонус к наградам. Голосование ограничено временем.",
+    "Игрок предлагает ход, а союзники обсуждают и голосуют. Большинство принимает решение; точные голоса влияют на бонус к награде.",
+    1
+)
 
 replace_once(
 '''func _continue_to_preparation() -> void:
