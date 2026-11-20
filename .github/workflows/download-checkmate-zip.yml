@@ -260,11 +260,10 @@ jobs:
           fi
           mkdir -p "$project_dir/qa"
           cp qa/checkmate_gameplay_smoke.gd "$project_dir/qa/checkmate_gameplay_smoke.gd"
-          "$GODOT_BIN" --headless --path "$project_dir" --script res://qa/checkmate_gameplay_smoke.gd 2>&1 | tee gameplay-qa.log
+          timeout 120s "$GODOT_BIN" --headless --path "$project_dir" --script res://qa/checkmate_gameplay_smoke.gd 2>&1 | tee gameplay-qa.log
 
           if ! command -v Xvfb >/dev/null 2>&1 || ! command -v xdotool >/dev/null 2>&1; then
-            sudo apt-get update -qq
-            timeout 180s sudo apt-get install -y --no-install-recommends xvfb xdotool
+            timeout 90s sudo apt-get install -y --no-install-recommends xvfb xdotool
           fi
           python3 -m pip install --quiet --break-system-packages mss
           cat > "$GITHUB_WORKSPACE/capture_screen.py" <<'PYSCREEN'
