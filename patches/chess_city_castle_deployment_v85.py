@@ -316,8 +316,8 @@ func _refresh_castle_hub_battle_screen() -> void:
             upgrade.text = "МАКСИМАЛЬНЫЙ УРОВЕНЬ ЗАМКА"
             upgrade.disabled = true
         else:
-            var xp_cost := [500,1200,2500,5000][level-1]
-            var gold_cost := [1500,3500,7000,14000][level-1]
+            var xp_cost: int = [500,1200,2500,5000][level-1]
+            var gold_cost: int = [1500,3500,7000,14000][level-1]
             upgrade.text = "УЛУЧШИТЬ ЗАМОК ДО %d • %d XP / %d ЗЛОТЫХ" % [level+1,xp_cost,gold_cost]
             upgrade.disabled = false
     var attack := castle_hub_battle_panel.find_child("CityAttackButton",true,false) as Button
