@@ -295,69 +295,77 @@ jobs:
           sleep 2
           "$GODOT_BIN" --path "$project_dir" --windowed --resolution 1920x1080 > visual-run.log 2>&1 &
           GAME_PID=$!
-          sleep 18
+          sleep 14
           python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_main_menu_v111.png
           xdotool mousemove 960 260 click 1
-          sleep 5
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_party_modes_v110.png
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_party_modes_v111.png
           xdotool mousemove 380 400 click 1
           sleep 1
           xdotool mousemove 960 945 click 1
-          sleep 5
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_preparation_v110.png
+          sleep 4
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_preparation_v111.png
           xdotool mousemove 1485 850 click 1
-          sleep 2
-          xdotool mousemove 1485 850 click 1
-          sleep 6
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_classic_queue_v110.png
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_classic_queue_v111.png
           kill "$GAME_PID" 2>/dev/null || true
+
           "$GODOT_BIN" --path "$project_dir" --windowed --resolution 1920x1080 > standard-run.log 2>&1 &
           GAME_PID=$!
-          sleep 18
+          sleep 14
           xdotool mousemove 960 260 click 1
-          sleep 3
+          sleep 2
           xdotool mousemove 1515 400 click 1
           sleep 1
           xdotool mousemove 960 945 click 1
-          sleep 8
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_standard_game_v110.png
+          sleep 5
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_standard_game_v111.png
+          xdotool mousemove 1740 65 click 1
+          sleep 3
+          xdotool mousemove 180 1015 click 1
+          sleep 4
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_shop_v111.png
+          xdotool mousemove 960 650 click 1
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_board_skins_v111.png
+          xdotool mousemove 1690 100 click 1
+          sleep 2
+          xdotool mousemove 1510 650 click 1
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_daily_tasks_v111.png
+          xdotool mousemove 1300 110 click 1
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_login_streak_v111.png
+          xdotool mousemove 1690 100 click 1
+          sleep 2
+          xdotool mousemove 1690 100 click 1
+          sleep 2
+          xdotool mousemove 400 900 click 1
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_season_pass_v111.png
+          xdotool mousemove 1690 100 click 1
+          sleep 2
+          xdotool mousemove 960 1015 click 1
+          sleep 4
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_chess_city_v111.png
+          xdotool mousemove 960 500 click 1
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_city_deployment_v111.png
+          xdotool mousemove 1690 100 click 1
+          sleep 2
+          xdotool mousemove 960 990 click 1
+          sleep 3
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_city_offline_battle_v111.png
+          kill "$GAME_PID" 2>/dev/null || true
+          kill "$XVFB_PID" 2>/dev/null || true
           if grep -E "SCRIPT ERROR|Parse Error" standard-run.log; then
             echo "Standard Chess visual launch reported GDScript errors."
             exit 1
           fi
-          xdotool mousemove 1485 60 click 1
-          sleep 2
-          xdotool mousemove 240 330 click 1
-          sleep 3
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_daily_tasks_v110.png
-          xdotool mousemove 1650 110 click 1
-          sleep 3
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_shop_v110.png
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_board_skins_v110.png
-          xdotool mousemove 1650 110 click 1
-          sleep 2
-          xdotool mousemove 240 535 click 1
-          sleep 3
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_season_pass_v110.png
-          xdotool mousemove 1650 110 click 1
-          sleep 2
-          xdotool mousemove 1650 110 click 1
-          sleep 2
-          xdotool mousemove 960 500 click 1
-          sleep 3
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_research_v110.png
-          xdotool mousemove 1835 60 click 1
-          sleep 2
-          xdotool mousemove 960 1010 click 1
-          sleep 4
-          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_chess_city_v110.png
-          kill "$GAME_PID" 2>/dev/null || true
-          kill "$XVFB_PID" 2>/dev/null || true
           if grep -E "SCRIPT ERROR|Parse Error" visual-run.log; then
             echo "Visual launch reported GDScript errors."
             exit 1
           fi
-
           (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v111.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
           unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v111.zip"
           mkdir -p builds
@@ -377,17 +385,19 @@ jobs:
         with:
           name: CHECKMATE-visual-review-v111
           path: |
-            CHECKMATE_main_menu_v110.png
-            CHECKMATE_party_modes_v110.png
-            CHECKMATE_preparation_v110.png
-            CHECKMATE_classic_queue_v110.png
-            CHECKMATE_standard_game_v110.png
-            CHECKMATE_daily_tasks_v110.png
-            CHECKMATE_shop_v110.png
-            CHECKMATE_board_skins_v110.png
-            CHECKMATE_season_pass_v110.png
-            CHECKMATE_chess_city_v110.png
-            CHECKMATE_research_v110.png
+            CHECKMATE_main_menu_v111.png
+            CHECKMATE_party_modes_v111.png
+            CHECKMATE_preparation_v111.png
+            CHECKMATE_classic_queue_v111.png
+            CHECKMATE_standard_game_v111.png
+            CHECKMATE_shop_v111.png
+            CHECKMATE_board_skins_v111.png
+            CHECKMATE_daily_tasks_v111.png
+            CHECKMATE_login_streak_v111.png
+            CHECKMATE_season_pass_v111.png
+            CHECKMATE_chess_city_v111.png
+            CHECKMATE_city_deployment_v111.png
+            CHECKMATE_city_offline_battle_v111.png
             visual-run.log
             standard-run.log
             gameplay-qa.log
