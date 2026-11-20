@@ -38,7 +38,7 @@ rep("    preview_camera.look_at(Vector3(0, 0.95, 0), Vector3.UP)",
 
 # Remove the complete stone pedestal and all of its decorative rings. The chess piece stands directly in the scene.
 start = s.find("    # A restrained, dark carved-stone plinth:")
-end = s.find("    preview_pawn := Node3D.new()", start)
+end = s.find("    preview_pawn = Node3D.new()", start)
 if start < 0 or end < 0:
     raise SystemExit("Missing v95 pedestal block")
 s = s[:start] + s[end:]
