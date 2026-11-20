@@ -7,9 +7,9 @@ const QUALITY_BONUSES = [
 
 export function calculateMatchReward({ winnerTeam, playerTeam, stats = {} }) {
   const result = winnerTeam === "draw" ? "draw" : winnerTeam === playerTeam ? "win" : "loss";
-  const base = result === "win" ? { xp: 70, zloty: 130 }
-    : result === "draw" ? { xp: 55, zloty: 100 }
-    : { xp: 40, zloty: 75 };
+  const base = result === "win" ? { xp: 400, zloty: 800 }
+    : result === "draw" ? { xp: 325, zloty: 650 }
+    : { xp: 250, zloty: 500 };
 
   const moves = Math.max(0, Number(stats.moves) || 0);
   const captures = Math.max(0, Number(stats.captures) || 0);
@@ -30,8 +30,7 @@ export function calculateMatchReward({ winnerTeam, playerTeam, stats = {} }) {
   const participationZloty = moves >= 3 ? 15 : moves > 0 ? 8 : 0;
 
   const xp = Math.round((base.xp + qualityBonus.xp + tacticalXp + voteBonus.xp + participationXp) * participation);
-  // A completed match must always fund at least the cheapest next entry bundle.
-  const zloty = Math.max(30, Math.round((base.zloty + qualityBonus.zloty + tacticalZloty + voteBonus.zloty + participationZloty) * participation));
+  const zloty = Math.max(0, Math.round((base.zloty + qualityBonus.zloty + tacticalZloty + voteBonus.zloty + participationZloty) * participation));
   return {
     result, xp, zloty, accuracy: Math.round(quality), moves, captures, checks,
     voteAccuracy: Math.round(voteAccuracy * 100),
