@@ -2,6 +2,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import { pathToFileURL } from "node:url";
 import { createAccountService } from "./accounts.js";
+import { createGameState, getGameState, applyGameMove, passGameTurn, sendTeamChat } from "./gameplay.js";
 
 const PORT = Number(process.env.PORT || 8080);
 const QUEUE_TTL_MS = 10 * 60 * 1000;
@@ -151,7 +152,9 @@ function tryMatch(ticket, now=Date.now()) {
   const matchId=crypto.randomUUID();
   const whitePlayers=roster.filter(p=>p.team==="white");
   const startingPlayer=whitePlayers[crypto.randomInt(0, whitePlayers.length)];
-  const match={id:matchId,mode:ticket.key,createdAt:now,players:roster,startingTeam:"white",startingPlayerId:startingPlayer.playerId,gameServerHost:process.env.GAME_SERVER_HOST||"",gameServerPort:Number(process.env.GAME_SERVER_PORT||24567)};
+  const match={id:matchId,mode:ticket.key,createdAt:now,players:roster,startingTeam:"white",startingPlayerId:startingPlayer.playerId,gameServerHost:process.env.GAME_SERVER_HOST||"",gameServerPort:Number(process.env.GAME_SERVER_PORT||24567),sessionTokens:new Map()};
+  for (const player of roster) match.sessionTokens.set(player.playerId, crypto.randomBytes(32).toString("hex"));
+  match.game=createGameState(match);
   matches.set(matchId,match);
   const selectedIds=new Set(roster.map(p=>p.playerId));
   const queue=waiting.get(ticket.key);
@@ -159,7 +162,7 @@ function tryMatch(ticket, now=Date.now()) {
     if(queue)queue.delete(p.id);
     p.status="matched";p.matchId=matchId;p.players=roster;
     const entry=roster.find(x=>x.playerId===p.playerId);p.team=entry.team;p.slot=entry.slot;p.pieceSlot=entry.pieceSlot;
-    p.gameServerHost=match.gameServerHost;p.gameServerPort=match.gameServerPort;p.startingPlayerId=match.startingPlayerId;p.expiresAt=now+QUEUE_TTL_MS;
+    p.gameServerHost=match.gameServerHost;p.gameServerPort=match.gameServerPort;p.startingPlayerId=match.startingPlayerId;p.playerSessionToken=match.sessionTokens.get(p.playerId);p.expiresAt=now+QUEUE_TTL_MS;
   }
   if(queue&&queue.size===0)waiting.delete(ticket.key);
   return match;
@@ -216,13 +219,42 @@ export function createMatchmakingServer(options = {}) {
         tickets.set(ticketId,ticket);
         const queue=waiting.get(mode)||new Set();queue.add(ticketId);waiting.set(mode,queue);
         tryMatch(ticket);
-        if(ticket.status==="matched")return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,startingTeam:"white",startingPlayerId:ticket.startingPlayerId||"",gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
+        if(ticket.status==="matched")return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,startingTeam:"white",startingPlayerId:ticket.startingPlayerId||"",playerSessionToken:ticket.playerSessionToken||"",gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
         const slots=pieceCapacity(mode);
         const status=slots[piece].selected>slots[piece].capacity?"waiting_piece_slot":"waiting";
         ticket.status=status;
         return send(res,201,{ticket:ticketId,status,pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
       }
 
+      const gameplayRoute=url.pathname.match(/^\/matches\/([0-9a-f-]+)\/(state|move|pass|chat)$/);
+      if(gameplayRoute){
+        const match=matches.get(gameplayRoute[1]);
+        if(!match)return send(res,404,{error:"MATCH_NOT_FOUND"});
+        const supplied=String(req.headers["x-player-session"]||"");
+        const auth=String(req.headers.authorization||"");
+        const sessionToken=supplied||(auth.startsWith("Bearer ")?auth.slice(7):"");
+        const entry=[...match.sessionTokens.entries()].find(([,token])=>token===sessionToken);
+        if(!entry)return send(res,401,{error:"INVALID_MATCH_SESSION"});
+        const playerId=entry[0],action=gameplayRoute[2];
+        if(req.method==="GET"&&action==="state"){
+          const state=getGameState(match,playerId);
+          return state?send(res,200,state):send(res,404,{error:"MATCH_NOT_FOUND"});
+        }
+        if(req.method!=="POST")return send(res,405,{error:"METHOD_NOT_ALLOWED"});
+        const body=await readJson(req);
+        if(action==="move"){
+          const result=applyGameMove(match,playerId,body);
+          return send(res,result.status,result.state||{error:result.error});
+        }
+        if(action==="pass"){
+          const result=passGameTurn(match,playerId);
+          return send(res,result.status,result.state||{error:result.error});
+        }
+        if(action==="chat"){
+          const result=sendTeamChat(match,playerId,body.message);
+          return send(res,result.status,result.message?{message:result.message}:{error:result.error});
+        }
+      }
       const cancelMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)\/cancel$/);
       if (req.method === "POST" && cancelMatch) {
         const ticket = tickets.get(cancelMatch[1]);
