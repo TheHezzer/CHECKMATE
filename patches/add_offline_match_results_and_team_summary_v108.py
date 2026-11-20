@@ -21,13 +21,16 @@ rep('''    if not reward.is_empty():
         match_result_rewards.text = "ЗЛОТЫЕ\\n+%d\\n\\nОПЫТ (XP)\\n+%d\\n\\nРЕЙТИНГ\\n%s%d\\n\\nКачество ходов: %d%%" % [int(reward.get("zloty", 0)), int(reward.get("xp", 0)), "+" if rating_delta >= 0 else "", rating_delta, int(reward.get("accuracy", 0))]''','result reward includes rating')
 rep('''    if selected_mode != "Командное голосование":
         match_result_votes.text = "Обычная классическая партия — голосование в этом матче не использовалось."''','''    var team_lines: Array[String] = []
-    for player in data.get("players", []):
+    var team_entries: Array = data.get("teamResults", data.get("players", []))
+    for player in team_entries:
         if str(player.get("team", "")) != local_player_team:
             continue
         var player_stats: Dictionary = player.get("stats", {})
+        var player_reward: Dictionary = player.get("reward", {})
         var player_name := str(player.get("name", player.get("playerId", "Игрок")))
         var abandoned_tag := " • ВЫШЕЛ" if bool(player.get("abandoned", false)) else ""
-        team_lines.append("%s • %d ходов • %d взятий%s" % [player_name, int(player_stats.get("moves", 0)), int(player_stats.get("captures", 0)), abandoned_tag])
+        var player_rating := int(player_reward.get("ratingDelta", 0))
+        team_lines.append("%s • %d ходов • %d взятий • рейтинг %s%d • +%d XP • +%d зл.%s" % [player_name, int(player_stats.get("moves", 0)), int(player_stats.get("captures", 0)), "+" if player_rating >= 0 else "", player_rating, int(player_reward.get("xp", 0)), int(player_reward.get("zloty", 0)), abandoned_tag])
     match_result_team.text = "\\n".join(team_lines) if not team_lines.is_empty() else "Нет данных о составе команды."
     if selected_mode != "Командное голосование":
         match_result_votes.text = "Обычная классическая партия — голосование в этом матче не использовалось."''','team stats list')
