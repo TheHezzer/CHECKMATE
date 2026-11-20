@@ -244,8 +244,10 @@ jobs:
             exit 1
           fi
 
-          sudo apt-get update
-          sudo apt-get install -y xvfb ffmpeg
+          if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb ffmpeg
+          fi
           Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
           XVFB_PID=$!
           export DISPLAY=:99
