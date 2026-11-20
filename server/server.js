@@ -159,7 +159,7 @@ function tryMatch(ticket, now=Date.now()) {
     if(queue)queue.delete(p.id);
     p.status="matched";p.matchId=matchId;p.players=roster;
     const entry=roster.find(x=>x.playerId===p.playerId);p.team=entry.team;p.slot=entry.slot;p.pieceSlot=entry.pieceSlot;
-    p.gameServerHost=match.gameServerHost;p.gameServerPort=match.gameServerPort;p.expiresAt=now+QUEUE_TTL_MS;
+    p.gameServerHost=match.gameServerHost;p.gameServerPort=match.gameServerPort;p.startingPlayerId=match.startingPlayerId;p.expiresAt=now+QUEUE_TTL_MS;
   }
   if(queue&&queue.size===0)waiting.delete(ticket.key);
   return match;
@@ -221,35 +221,6 @@ export function createMatchmakingServer(options = {}) {
         const status=slots[piece].selected>slots[piece].capacity?"waiting_piece_slot":"waiting";
         ticket.status=status;
         return send(res,201,{ticket:ticketId,status,pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
-      }
-
-      const firstMoveVoteId = url.pathname.startsWith("/matches/") && url.pathname.endsWith("/first-move-vote") ? url.pathname.slice(9, -16) : "";
-      if (firstMoveVoteId && req.method === "GET") {
-        const match = matches.get(firstMoveVoteId);
-        if (!match) return send(res, 404, { error: "MATCH_NOT_FOUND" });
-        return send(res, 200, { votes: match.firstMoveVotes, votesCast: match.votedPlayers.size, votesRequired: CLASSIC_MATCH_SIZE, resolved: match.firstMoveResolved, startingTeam: match.firstMoveTeam, startingPlayerId: match.firstMovePlayerId });
-      }
-      if (firstMoveVoteId && req.method === "POST") {
-        const match = matches.get(firstMoveVoteId);
-        if (!match) return send(res, 404, { error: "MATCH_NOT_FOUND" });
-        const body = await readJson(req);
-        const playerId = String(body.playerId || "").trim();
-        const vote = String(body.vote || "").trim();
-        if (!["white", "black"].includes(vote) || !match.players.some(p => p.playerId === playerId)) return send(res, 400, { error: "INVALID_VOTE" });
-        if (match.firstMoveResolved) return send(res, 409, { error: "VOTE_ALREADY_RESOLVED" });
-        if (match.votedPlayers.has(playerId)) return send(res, 409, { error: "ALREADY_VOTED" });
-        match.votedPlayers.add(playerId);
-        match.firstMoveVotes[vote] += 1;
-        if (match.votedPlayers.size === CLASSIC_MATCH_SIZE) {
-          if (match.firstMoveVotes.white > match.firstMoveVotes.black) match.firstMoveTeam = "white";
-          else if (match.firstMoveVotes.black > match.firstMoveVotes.white) match.firstMoveTeam = "black";
-          else match.firstMoveTeam = crypto.randomInt(0, 2) === 0 ? "white" : "black";
-          const eligible = match.players.filter(p => p.team === match.firstMoveTeam);
-          const first = eligible[crypto.randomInt(0, eligible.length)];
-          match.firstMovePlayerId = first.playerId;
-          match.firstMoveResolved = true;
-        }
-        return send(res, 200, { votes: match.firstMoveVotes, votesCast: match.votedPlayers.size, votesRequired: CLASSIC_MATCH_SIZE, resolved: match.firstMoveResolved, startingTeam: match.firstMoveTeam, startingPlayerId: match.firstMovePlayerId });
       }
 
       const cancelMatch = url.pathname.match(/^\/matchmaking\/queue\/([0-9a-f-]+)\/cancel$/);
