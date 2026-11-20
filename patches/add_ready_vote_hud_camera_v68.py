@@ -89,8 +89,8 @@ rep('''    var pending_vote: Dictionary = data.get("pendingVote", {})
         ]''', "right-side vote details")
 
 # Make game labels larger but give them separate vertical lanes; increase left menu card text.
-rep('''    team_turn_label.anchor_top = 0.17
-    team_turn_label.anchor_bottom = 0.17''', '''    team_turn_label.anchor_top = 0.105
+rep('''    team_turn_label.anchor_top = 0.12
+    team_turn_label.anchor_bottom = 0.12''', '''    team_turn_label.anchor_top = 0.105
     team_turn_label.anchor_bottom = 0.105''', "move turn label upward")
 rep('''    game_hint_label.anchor_top = 0.17
     game_hint_label.anchor_bottom = 0.17''', '''    game_hint_label.anchor_top = 0.145
