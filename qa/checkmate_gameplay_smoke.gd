@@ -134,10 +134,9 @@ func _run() -> void:
     var human_moves := 0
     var bot_moves := 0
     var full_game_plies := 0
-    print("QA DEBUG standard start: current=%s user=%s active=%d slot=%d standard=%s" % [game.current_team, game.local_user_team, game.active_teammate, game.local_user_slot, str(game.standard_chess_mode_active)])
     while not game.game_over and full_game_plies < 32:
-        if full_game_plies < 4:
-            print("QA DEBUG ply %d: current=%s user=%s active=%d slot=%d" % [full_game_plies, game.current_team, game.local_user_team, game.active_teammate, game.local_user_slot])
+        if game.current_team == game.local_user_team:
+            _check(game.active_teammate == game.local_user_slot, "standard chess keeps the human on the same controller slot")
         if game.current_team == game.local_user_team and game.active_teammate == game.local_user_slot:
             var chosen_move: Dictionary = {}
             for piece in game.game_piece_nodes:
