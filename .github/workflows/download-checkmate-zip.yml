@@ -1,4 +1,5 @@
 name: Build CHECKMATE classic v46 — avatar account and guest mode
+# Rebuild after correcting the v46 patch path.
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
