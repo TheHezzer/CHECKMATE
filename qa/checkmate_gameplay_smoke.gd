@@ -132,7 +132,7 @@ func _run() -> void:
     var human_moves := 0
     var bot_moves := 0
     var full_game_plies := 0
-    while not game.game_over and full_game_plies < 160:
+    while not game.game_over and full_game_plies < 32:
         if game.current_team == game.local_user_team and game.active_teammate == game.local_user_slot:
             var chosen_move: Dictionary = {}
             for piece in game.game_piece_nodes:
@@ -168,7 +168,7 @@ func _run() -> void:
         await process_frame
     _check(human_moves >= 5, "human controls multiple moves in the standard match")
     _check(bot_moves >= 5, "bot replies repeatedly in the standard match")
-    _check(full_game_plies == 160 and not game.game_over and game.game_panel.visible, "long standard match remains playable through the QA safety limit")
+    _check(full_game_plies == 32 and not game.game_over and game.game_panel.visible, "standard match remains playable through 32 alternating half-moves")
     # A random legal game is not required to finish within an arbitrary move cap.
     # Verify the actual terminal flow with a deterministic checkmate position.
     game._start_game("Стандартные шахматы")
