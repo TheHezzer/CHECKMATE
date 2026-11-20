@@ -85,6 +85,25 @@ func _run() -> void:
     _check(game.daily_tasks_panel.visible, "daily tasks screen opens")
     _check(await _click(game.daily_tasks_panel, "БОНУС ЗА ВХОД"), "login streak button responds")
     _check(game.login_streak_panel.visible, "login streak screen opens")
+    await process_frame
+    var streak_intro: Label = null
+    var streak_status: Label = null
+    for label_node in game.login_streak_panel.find_children("*", "Label", true, false):
+        var candidate := label_node as Label
+        if candidate.text.begins_with("Заходи каждый день"):
+            streak_intro = candidate
+        elif candidate.text.begins_with("ТЕКУЩАЯ СЕРИЯ"):
+            streak_status = candidate
+    _check(streak_intro != null and streak_status != null and not streak_intro.get_global_rect().intersects(streak_status.get_global_rect()), "login streak intro and status labels do not overlap")
+    var streak_cards_clear := true
+    for card_entry in game.login_streak_day_cards:
+        var card_node: Control = card_entry["card"]
+        var card_labels: Array = card_node.find_children("*", "Label", true, false)
+        for a in range(card_labels.size()):
+            for b in range(a + 1, card_labels.size()):
+                if (card_labels[a] as Control).get_global_rect().intersects((card_labels[b] as Control).get_global_rect()):
+                    streak_cards_clear = false
+    _check(streak_cards_clear, "login streak day-card labels do not overlap")
     _check(await _click(game.login_streak_panel, "К ЗАДАНИЯМ"), "login streak Back button responds")
     _check(game.daily_tasks_panel.visible, "login streak returns to daily tasks")
     _check(await _click(game.daily_tasks_panel, "В МАГАЗИН"), "daily tasks Back button responds")
