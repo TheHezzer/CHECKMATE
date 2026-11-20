@@ -100,8 +100,6 @@ func _run() -> void:
         var card_node: Control = card_entry["card"]
         var card_labels: Array = card_node.find_children("*", "Label", true, false)
         card_labels.sort_custom(func(left, right): return (left as Control).position.y < (right as Control).position.y)
-        if card_entry == game.login_streak_day_cards[0]:
-            print("UI DEBUG v114 card labels: %s" % str(card_labels.map(func(item): return [item.text, item.position.y, item.size.y])))
         if card_labels.size() >= 3:
             var day_label := card_labels[0] as Label
             var reward_label := card_labels[1] as Label
