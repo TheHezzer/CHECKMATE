@@ -301,6 +301,39 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return results;
   }
 
+  async function applyMatchRatingById(players, winnerTeam) {
+    await load();
+    const list = (players || []).map(player => ({
+      player,
+      account: accounts.find(item => item.id === player.playerId)
+    })).filter(item => item.account);
+    const averages = {};
+    for (const team of ["white", "black"]) {
+      const teamAccounts = list.filter(item => item.player.team === team);
+      averages[team] = teamAccounts.length
+        ? teamAccounts.reduce((sum, item) => sum + Number(item.account.rating || 1000), 0) / teamAccounts.length
+        : 1000;
+    }
+    const results = [];
+    for (const { player, account } of list) {
+      const own = Number(account.rating || 1000);
+      const opponent = averages[player.team === "white" ? "black" : "white"];
+      const expected = 1 / (1 + Math.pow(10, (opponent - own) / 400));
+      const actual = winnerTeam === "draw" ? 0.5 : winnerTeam === player.team ? 1 : 0;
+      const eloDelta = Math.round(24 * (actual - expected));
+      const abandonmentPenalty = player.abandoned ? 20 : 0;
+      const delta = eloDelta - abandonmentPenalty;
+      account.rating = Math.max(0, own + delta);
+      account.matches = (account.matches || 0) + 1;
+      if (winnerTeam === "draw") account.draws = (account.draws || 0) + 1;
+      else if (winnerTeam === player.team) account.wins = (account.wins || 0) + 1;
+      else account.losses = (account.losses || 0) + 1;
+      results.push({ playerId: account.id, ratingBefore: own, ratingAfter: account.rating, ratingDelta: delta, abandonmentPenalty });
+    }
+    if (results.length) await persist();
+    return results;
+  }
+
   async function addNotificationById(playerId, notification = {}) {
     await load();
     const account = accounts.find(item => item.id === playerId);
@@ -352,5 +385,5 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return rows;
   }
 
-  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, adminGrantResources, awardMatchById, reserveClassicMatchPiece, refundClassicMatchPieceById, addNotificationById, getNotifications, markNotificationsRead };
+  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, adminGrantResources, awardMatchById, reserveClassicMatchPiece, refundClassicMatchPieceById, addNotificationById, getNotifications, markNotificationsRead, applyMatchRatingById };
 }
