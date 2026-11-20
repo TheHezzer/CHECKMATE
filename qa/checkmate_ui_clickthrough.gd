@@ -104,9 +104,9 @@ func _run() -> void:
             var day_label := card_labels[0] as Label
             var reward_label := card_labels[1] as Label
             var state_label := card_labels[2] as Label
-            if day_label.position.y + day_label.size.y > reward_label.position.y:
+            if day_label.position.y + 48.0 > reward_label.position.y:
                 streak_cards_clear = false
-            if reward_label.position.y + reward_label.size.y > state_label.position.y:
+            if reward_label.position.y + 80.0 > state_label.position.y:
                 streak_cards_clear = false
     _check(streak_cards_clear, "login streak day-card labels do not overlap")
     _check(await _click(game.login_streak_panel, "К ЗАДАНИЯМ"), "login streak Back button responds")
