@@ -329,8 +329,8 @@ func _upgrade_castle_hub_castle() -> void:
     var level := int(castle_hub_state.get("castle_level",1))
     if level >= 5:
         return
-    var xp_cost := [500,1200,2500,5000][level-1]
-    var gold_cost := [1500,3500,7000,14000][level-1]
+    var xp_cost: int = [500,1200,2500,5000][level-1]
+    var gold_cost: int = [1500,3500,7000,14000][level-1]
     if int(balances.get("xp",0)) < xp_cost or int(balances.get("zloty",0)) < gold_cost:
         _show_notice("Для улучшения замка нужно %d XP и %d злотых." % [xp_cost,gold_cost])
         return
