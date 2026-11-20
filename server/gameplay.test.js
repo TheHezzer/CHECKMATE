@@ -74,6 +74,7 @@ test("team vote rejects duplicates and a majority rejection passes the turn to t
  const starter=match.game.activePlayerId;
  const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
  proposeGameMove(match,starter,move);
+ match.game.pendingVote.discussionEndsAt=Date.now()-1;
  assert.equal(castGameVote(match,"white-1","reject").status,200);
  assert.equal(castGameVote(match,"white-1","reject").error,"ALREADY_VOTED");
  castGameVote(match,"white-2","reject");
@@ -96,6 +97,7 @@ test("vote timeout accepts the option with more votes even without all teammates
  const starter=match.game.activePlayerId;
  const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
  proposeGameMove(match,starter,move);
+ match.game.pendingVote.discussionEndsAt=Date.now()-1;
  for(const id of ["white-1","white-2","white-3","white-7"])assert.equal(castGameVote(match,id,"approve").status,200);
  for(const id of ["white-4","white-5","white-6"])assert.equal(castGameVote(match,id,"reject").status,200);
  assert.ok(match.game.pendingVote);
@@ -110,6 +112,7 @@ test("a tied vote at timeout rejects the proposal and passes the turn",()=>{
  const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
  const starter=match.game.activePlayerId;
  proposeGameMove(match,starter,{fromFile:0,fromRow:6,toFile:0,toRow:5});
+ match.game.pendingVote.discussionEndsAt=Date.now()-1;
  for(const id of ["white-1","white-2","white-3"])castGameVote(match,id,"approve");
  for(const id of ["white-4","white-5","white-6"])castGameVote(match,id,"reject");
  match.game.pendingVote.expiresAt=Date.now()-1;
