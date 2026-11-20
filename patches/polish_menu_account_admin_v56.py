@@ -100,15 +100,5 @@ rep('''                var welcome := "Добро пожаловать, " + acco
 rep('''button.add_theme_font_size_override("font_size", font_size + 8)''','''button.add_theme_font_size_override("font_size", font_size + 13)''',"global button font")
 rep('''label.add_theme_font_size_override("font_size", font_size + 7)''','''label.add_theme_font_size_override("font_size", font_size + 11)''',"global label font")
 
-# Remove stale "locked" notice branch in main carousel and always allow all pieces.
-rep('''    if selected_piece != 0 and unlocked_pieces.has(piece_name):
-        selected_match_piece = piece_name
-        _show_notice(piece_name + " выбрана. Нажми «ПАРТИЯ», чтобы продолжить.")
-    elif selected_piece != 0:
-        _show_notice("🔒 " + piece_name + " пока заблокирована. Открой её в магазине.")
-''','''    if selected_piece >= 0:
-        selected_match_piece = piece_name
-''',"remove selection/locked notices")
-
 p.write_text(s,encoding="utf-8")
 print("CHECKMATE v56 menu/account/admin polish applied")
