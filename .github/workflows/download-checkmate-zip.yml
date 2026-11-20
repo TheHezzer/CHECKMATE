@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v41 — team move voting and Classic match flow
+name: Build CHECKMATE classic v42 — team move voting and Classic match flow
 
 concurrency:
   group: checkmate-build-${{ github.ref }}
@@ -70,10 +70,11 @@ jobs:
           cp patches/add_classic_rules_v34.py "$project_dir/patches/add_classic_rules_v34.py"
           cp patches/add_random_team_colors_v35.py "$project_dir/patches/add_random_team_colors_v35.py"
           cp patches/fix_online_economy_v37.py "$project_dir/patches/fix_online_economy_v37.py"
-          cp patches/upgrade_classic_rewards_v38.py "$project_dir/patches/upgrade_classic_rewards_v41.py"
-          cp patches/connect_performance_rewards_v38.py "$project_dir/patches/connect_performance_rewards_v41.py"
+          cp patches/upgrade_classic_rewards_v38.py "$project_dir/patches/upgrade_classic_rewards_v42.py"
+          cp patches/connect_performance_rewards_v38.py "$project_dir/patches/connect_performance_rewards_v42.py"
           cp patches/connect_team_voting_v40.py "$project_dir/patches/connect_team_voting_v40.py"
-          cp patches/connect_team_voting_timer_v41.py "$project_dir/patches/connect_team_voting_timer_v41.py"
+          cp patches/connect_team_voting_timer_v42.py "$project_dir/patches/connect_team_voting_timer_v42.py"
+          cp patches/connect_team_voting_phases_v42.py "$project_dir/patches/connect_team_voting_phases_v42.py"
           for i in {1..8}; do cp "patches/add_online_gameplay_city_v36.part${i}" "$project_dir/patches/add_online_gameplay_city_v36.part${i}"; done
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
@@ -99,10 +100,11 @@ jobs:
           base64 -d "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64" | gzip -d > "$project_dir/patches/add_online_gameplay_city_v36.py"
           python "$project_dir/patches/add_online_gameplay_city_v36.py"
           python "$project_dir/patches/fix_online_economy_v37.py"
-          python "$project_dir/patches/upgrade_classic_rewards_v41.py"
-          python "$project_dir/patches/connect_performance_rewards_v41.py"
+          python "$project_dir/patches/upgrade_classic_rewards_v42.py"
+          python "$project_dir/patches/connect_performance_rewards_v42.py"
           python "$project_dir/patches/connect_team_voting_v40.py"
-          python "$project_dir/patches/connect_team_voting_timer_v41.py"
+          python "$project_dir/patches/connect_team_voting_timer_v42.py"
+          python "$project_dir/patches/connect_team_voting_phases_v42.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -120,23 +122,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v41.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v41.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v42.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v42.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v41.zip" builds/CHECKMATE_classic_v41.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v42.zip" builds/CHECKMATE_classic_v42.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v41 build"
+          commit_message: "Save CHECKMATE classic v42 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v41.zip
+          file_pattern: builds/CHECKMATE_classic_v42.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v41
-          path: CHECKMATE_classic_v41.zip
+          name: CHECKMATE-classic-v42
+          path: CHECKMATE_classic_v42.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
