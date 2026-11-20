@@ -1,7 +1,8 @@
-name: Build CHECKMATE classic v82 — daily tasks and reward chest
+name: Build CHECKMATE classic v83 — daily login streak rewards
 # v76 randomizes local test colors and adds a manual self-play chess test
 # v78 updates Chess City-only match rewards and economy isolation
 # v79 redesigns figure research as connected current/locked level cards
+# v83 adds a persistent seven-day login streak with escalating daily rewards
 # v82 makes the next-tier card actionable and completes the five-tier unlock flow
 # Rebuild after correcting the research card GDScript line breaks.
 # Re-run after correcting the v78 output archive path.
@@ -194,6 +195,8 @@ jobs:
           python "$project_dir/patches/research_progress_growth_v81.py"
           cp patches/daily_tasks_chest_v82.py "$project_dir/patches/daily_tasks_chest_v82.py"
           python "$project_dir/patches/daily_tasks_chest_v82.py"
+          cp patches/login_streak_rewards_v83.py "$project_dir/patches/login_streak_rewards_v83.py"
+          python "$project_dir/patches/login_streak_rewards_v83.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -211,7 +214,7 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v82.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v83.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
           unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v82.zip"
           mkdir -p builds
           cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v82.zip" builds/CHECKMATE_classic_v82.zip
@@ -219,14 +222,14 @@ jobs:
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v82 build"
+          commit_message: "Save CHECKMATE classic v83 build"
           branch: splash-update
           file_pattern: builds/CHECKMATE_classic_v82.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v82
+          name: CHECKMATE-classic-v83
           path: CHECKMATE_classic_v82.zip
           if-no-files-found: error
           compression-level: 0
