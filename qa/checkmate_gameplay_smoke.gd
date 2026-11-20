@@ -150,7 +150,7 @@ func _run() -> void:
     game.city_offline_units["0,6"] = {"name":"Ферзь","team":"player","col":0,"row":6,"health":200,"max_health":200,"armor":0,"max_armor":0,"damage":115,"shield":0,"max_shield":0}
     game.city_offline_units["0,1"] = {"name":"Пешка","team":"bot","col":0,"row":1,"health":100,"max_health":100,"armor":50,"max_armor":50,"damage":40,"shield":30,"max_shield":30}
     game._city_offline_attack("0,6","0,1")
-    var damaged := game.city_offline_units["0,1"]
+    var damaged: Dictionary = game.city_offline_units["0,1"]
     _check(int(damaged.health) == 65 and int(damaged.armor) == 0 and int(damaged.shield) == 0, "combat damage removes temporary shield first, then armor, then health")
     _check(game.city_offline_units.has("0,6"), "attacking figure returns to its original square after a duel")
     _check(game._city_offline_is_legal({"name":"Пешка","team":"bot","col":0,"row":1},0,2,false), "bot pawn has legal forward movement")
