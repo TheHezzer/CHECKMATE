@@ -172,6 +172,16 @@ function tryMatch(ticket, now=Date.now()) {
   return match;
 }
 
+function attachMatchResultData(match, state, playerId) {
+  if (!state || !match?.rewardResults) return state;
+  state.reward = match.rewardResults.find(item => item.playerId === playerId) || null;
+  state.teamResults = match.game.players.map(player => ({
+    ...player,
+    reward: match.rewardResults.find(item => item.playerId === player.playerId) || { xp: 0, zloty: 0, ratingDelta: 0 }
+  }));
+  return state;
+}
+
 async function deliverMatchResults(match, accounts) {
   if (!match?.game || match.game.status !== "finished" || match.resultsDelivered) return;
   if (!match.rewardsPaid) {
@@ -397,7 +407,7 @@ export function createMatchmakingServer(options = {}) {
           const viewerPlayer=match.game.players.find(item=>item.playerId===playerId);
           if(viewerPlayer&&!viewerPlayer.abandoned&&match.game.status==="active") viewerPlayer.lastSeenAt=Date.now();
           await deliverMatchResults(match,accounts);
-          if(state&&match.rewardResults) state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
+          attachMatchResultData(match,state,playerId);
           return state?send(res,200,state):send(res,404,{error:"MATCH_NOT_FOUND"});
         }
         if(req.method!=="POST")return send(res,405,{error:"METHOD_NOT_ALLOWED"});
@@ -413,19 +423,19 @@ export function createMatchmakingServer(options = {}) {
         if(action==="vote"){
           const result=castGameVote(match,playerId,body.vote);
           await deliverMatchResults(match,accounts);
-          if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
+          attachMatchResultData(match,result.state,playerId);
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="move"){
           const result=applyGameMove(match,playerId,body);
           await deliverMatchResults(match,accounts);
-          if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
+          attachMatchResultData(match,result.state,playerId);
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="pass"){
           const result=passGameTurn(match,playerId);
           await deliverMatchResults(match,accounts);
-          if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
+          attachMatchResultData(match,result.state,playerId);
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="chat"){
