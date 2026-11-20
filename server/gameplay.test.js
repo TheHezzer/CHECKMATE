@@ -199,3 +199,46 @@ test("a disconnected active player is marked abandoned and skipped after heartbe
  assert.notEqual(state.activePlayerId,current.playerId);
  assert.equal(state.activeTeam,"white");
 });
+
+
+test("team classic completes a full Fool's Mate game with checkmate detection",()=>{
+ const match=startedMatch(fixture());
+ const play=(playerId,fromFile,fromRow,toFile,toRow)=>{
+   match.game.activeTeam=playerId.startsWith("white")?"white":"black";
+   match.game.activePlayerId=playerId;
+   const result=applyGameMove(match,playerId,{fromFile,fromRow,toFile,toRow});
+   assert.equal(result.status,200);
+ };
+ play("white-5",5,6,5,5);
+ play("black-4",4,1,4,3);
+ play("white-6",6,6,6,4);
+ play("black-3",3,0,7,4);
+ assert.equal(match.game.status,"finished");
+ assert.equal(match.game.result,"checkmate");
+ assert.equal(match.game.winnerTeam,"black");
+});
+
+test("team voting completes a full Fool's Mate game after bot teammates approve each move",()=>{
+ const match=startedMatch(fixture());
+ match.game.mode="Командное голосование";
+ const play= (playerId,fromFile,fromRow,toFile,toRow)=>{
+   const team=playerId.startsWith("white")?"white":"black";
+   match.game.activeTeam=team;
+   match.game.activePlayerId=playerId;
+   const proposal=proposeGameMove(match,playerId,{fromFile,fromRow,toFile,toRow});
+   assert.equal(proposal.status,200);
+   match.game.pendingVote.discussionEndsAt=Date.now()-1;
+   const voters=match.game.players.filter(p=>p.team===team).slice(0,5);
+   let result;
+   for(const voter of voters) result=castGameVote(match,voter.playerId,"approve");
+   assert.equal(result.status,200);
+   assert.equal(match.game.pendingVote,null);
+ };
+ play("white-5",5,6,5,5);
+ play("black-4",4,1,4,3);
+ play("white-6",6,6,6,4);
+ play("black-3",3,0,7,4);
+ assert.equal(match.game.status,"finished");
+ assert.equal(match.game.result,"checkmate");
+ assert.equal(match.game.winnerTeam,"black");
+});
