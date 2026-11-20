@@ -55,6 +55,7 @@ test("team voting requires a proposal and a majority before applying the move",(
  const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
  assert.equal(applyGameMove(match,starter,move).error,"VOTE_REQUIRED");
  const proposed=proposeGameMove(match,starter,move);
+ match.game.pendingVote.discussionEndsAt=Date.now()-1;
  assert.equal(proposed.status,200);
  assert.equal(match.game.board.find(p=>p.ownerPlayerId===starter&&p.kind==="P").row,6);
  assert.equal(castGameVote(match,"black-0","approve").error,"VOTE_NOT_ALLOWED");
