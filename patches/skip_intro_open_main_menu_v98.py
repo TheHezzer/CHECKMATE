@@ -1,20 +1,25 @@
 from pathlib import Path
+import re
 
 p = Path(__file__).resolve().parent.parent / "scripts" / "main.gd"
 s = p.read_text(encoding="utf-8")
 
-old = """    _build_onboarding_screen()
-    if not onboarding_completed:
-        _open_onboarding()
-"""
-new = """    _build_onboarding_screen()
-    # Skip the blocking first-run tutorial: launch directly into the main menu.
+pattern = r"func _build_startup_sequence\(\) -> void:\n.*?(?=\nfunc _advance_startup_progress\(\) -> void:)"
+replacement = """func _build_startup_sequence() -> void:
+    # The campaign intro is only a placeholder. Do not block the player with it.
     onboarding_completed = true
-    onboarding_panel.visible = false
-    menu_panel.visible = true
+    if onboarding_panel:
+        onboarding_panel.visible = false
+    if menu_panel:
+        menu_panel.visible = true
+    _save_economy()
+    startup_panel = Control.new()
+    startup_panel.name = "CampaignIntroAndLoading"
+    startup_panel.visible = false
+    ui.add_child(startup_panel)
 """
-if old not in s:
-    raise SystemExit("Missing startup onboarding anchor; refusing to patch an unexpected project version.")
-s = s.replace(old, new, 1)
+s, count = re.subn(pattern, replacement, s, count=1, flags=re.S)
+if count != 1:
+    raise SystemExit("Could not locate startup intro function; refusing to patch.")
 p.write_text(s, encoding="utf-8")
-print("CHECKMATE v98: first-run Continue/tutorial screen skipped; main menu opens immediately.")
+print("CHECKMATE v98: removed blocking campaign intro and Continue button; main menu opens directly.")
