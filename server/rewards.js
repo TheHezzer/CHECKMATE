@@ -30,7 +30,8 @@ export function calculateMatchReward({ winnerTeam, playerTeam, stats = {} }) {
   const participationZloty = moves >= 3 ? 15 : moves > 0 ? 8 : 0;
 
   const xp = Math.round((base.xp + qualityBonus.xp + tacticalXp + voteBonus.xp + participationXp) * participation);
-  const zloty = Math.round((base.zloty + qualityBonus.zloty + tacticalZloty + voteBonus.zloty + participationZloty) * participation);
+  // A completed match must always fund at least the cheapest next entry bundle.
+  const zloty = Math.max(30, Math.round((base.zloty + qualityBonus.zloty + tacticalZloty + voteBonus.zloty + participationZloty) * participation));
   return {
     result, xp, zloty, accuracy: Math.round(quality), moves, captures, checks,
     voteAccuracy: Math.round(voteAccuracy * 100),
