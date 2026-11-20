@@ -27,8 +27,8 @@ rep('''    vote_reject_button.pressed.connect(_cast_team_vote.bind("reject"))'''
 rep('''    local_opening_vote_seconds = 20.0
     local_opening_vote_active = not online_active and not local_bot_test_active''', '''    local_opening_vote_seconds = 20.0
     local_ready_seconds = 20.0
-    local_ready_active = not online_active and not local_bot_test_active
-    local_opening_vote_active = not online_active and not local_bot_test_active''', "local ready timer initialization")
+    local_ready_active = not online_active
+    local_opening_vote_active = not online_active''', "local ready timer initialization")
 rep('''        opening_vote_panel.visible = not online_active and not local_bot_test_active''', '''        opening_vote_panel.visible = false''', "hide opening vote during ready countdown")
 rep('''    if local_opening_vote_active:
         local_opening_vote_seconds = maxf(0.0, local_opening_vote_seconds - dt)''', '''    if local_ready_active:
@@ -46,8 +46,6 @@ rep('''    if local_opening_vote_active:
         return
     if local_opening_vote_active:
         local_opening_vote_seconds = maxf(0.0, local_opening_vote_seconds - dt)''', "local ready countdown phase")
-rep('''    if not developer_mode or game_over or local_opening_vote_active:''', '''    if not developer_mode or game_over or local_opening_vote_active or local_ready_active:''', "bot waits until ready")
-
 # Online ready countdown comes from the authoritative match server.
 rep('''    var opening_vote: Dictionary = data.get("openingVote", {})
     if opening_vote_panel:
@@ -108,10 +106,9 @@ s = s.replace("camera.position = Vector3(0, 13.2, 11.9)", "camera.position = Vec
 s = s.replace("camera.fov = 47.0", "camera.fov = 49.0", 1)
 # Rotate central preview figure to a 45-degree Y angle whenever it is recreated.
 if "preview_pawn.rotation.y = deg_to_rad(45.0)" not in s:
-    anchor = "preview_pawn = root"
-    if anchor not in s:
-        raise SystemExit("Missing preview figure assignment")
-    s = s.replace(anchor, anchor + "\n    preview_pawn.rotation.y = deg_to_rad(45.0)", 1)
+    anchor = "    _build_preview_piece(name)"
+    if anchor in s:
+        s = s.replace(anchor, anchor + "\n    if is_instance_valid(preview_pawn):\n        preview_pawn.rotation.y = deg_to_rad(45.0)", 1)
 
 # Improve left menu panel labels and actions without changing their layout.
 for old, new in [
