@@ -142,10 +142,16 @@ function composeClassicRoster(candidates, referenceTicket) {
 
 function tryMatch(ticket, now=Date.now()) {
   const candidates=[ticket,...eligiblePlayers(ticket,now)];
-  const roster=composeClassicRoster(candidates,ticket);
+  let roster=composeClassicRoster(candidates,ticket);
   if(!roster || roster.length!==CLASSIC_MATCH_SIZE)return null;
+  // Assign colors only after the full 16-player roster is ready.
+  if (crypto.randomInt(0, 2) === 1) {
+    roster = roster.map(player => ({...player, team: player.team === "white" ? "black" : "white"}));
+  }
   const matchId=crypto.randomUUID();
-  const match={id:matchId,mode:ticket.key,createdAt:now,players:roster,firstMoveVotes:{white:0,black:0},votedPlayers:new Set(),firstMoveResolved:false,firstMoveTeam:null,firstMovePlayerId:null,gameServerHost:process.env.GAME_SERVER_HOST||"",gameServerPort:Number(process.env.GAME_SERVER_PORT||24567)};
+  const whitePlayers=roster.filter(p=>p.team==="white");
+  const startingPlayer=whitePlayers[crypto.randomInt(0, whitePlayers.length)];
+  const match={id:matchId,mode:ticket.key,createdAt:now,players:roster,startingTeam:"white",startingPlayerId:startingPlayer.playerId,gameServerHost:process.env.GAME_SERVER_HOST||"",gameServerPort:Number(process.env.GAME_SERVER_PORT||24567)};
   matches.set(matchId,match);
   const selectedIds=new Set(roster.map(p=>p.playerId));
   const queue=waiting.get(ticket.key);
@@ -210,7 +216,7 @@ export function createMatchmakingServer(options = {}) {
         tickets.set(ticketId,ticket);
         const queue=waiting.get(mode)||new Set();queue.add(ticketId);waiting.set(mode,queue);
         tryMatch(ticket);
-        if(ticket.status==="matched")return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
+        if(ticket.status==="matched")return send(res,201,{ticket:ticketId,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,startingTeam:"white",startingPlayerId:ticket.startingPlayerId||"",gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
         const slots=pieceCapacity(mode);
         const status=slots[piece].selected>slots[piece].capacity?"waiting_piece_slot":"waiting";
         ticket.status=status;
@@ -266,7 +272,7 @@ export function createMatchmakingServer(options = {}) {
         const ticketId=url.pathname.slice(queuePrefix.length);
         const ticket=tickets.get(ticketId);
         if(!ticket)return send(res,404,{error:"TICKET_EXPIRED"});
-        if(ticket.status==="matched")return send(res,200,{ticket:ticket.id,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
+        if(ticket.status==="matched")return send(res,200,{ticket:ticket.id,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,startingTeam:"white",startingPlayerId:ticket.startingPlayerId||"",gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
         const preview=ticket.status==="waiting"?queuePreview(ticket):{players:[],queueCount:0,requiredPlayers:CLASSIC_MATCH_SIZE};
         return send(res,200,{ticket:ticket.id,status:ticket.status,...preview});
       }
