@@ -69,7 +69,7 @@ jobs:
           cp patches/add_first_run_tutorial_v33.py "$project_dir/patches/add_first_run_tutorial_v33.py"
           cp patches/add_classic_rules_v34.py "$project_dir/patches/add_classic_rules_v34.py"
           cp patches/add_random_team_colors_v35.py "$project_dir/patches/add_random_team_colors_v35.py"
-          cp patches/add_online_gameplay_city_v36.py.gz.b64 "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64"
+          for i in {1..8}; do cp "patches/add_online_gameplay_city_v36.part${i}" "$project_dir/patches/add_online_gameplay_city_v36.part${i}"; done
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
           python "$project_dir/patches/add_classic_turns.py"
@@ -89,6 +89,8 @@ jobs:
           python "$project_dir/patches/add_first_run_tutorial_v33.py"
           python "$project_dir/patches/add_classic_rules_v34.py"
           python "$project_dir/patches/add_random_team_colors_v35.py"
+          cat "$project_dir"/patches/add_online_gameplay_city_v36.part{1..8} > "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64"
+          base64 -d "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64" | gzip -t
           base64 -d "$project_dir/patches/add_online_gameplay_city_v36.py.gz.b64" | gzip -d > "$project_dir/patches/add_online_gameplay_city_v36.py"
           python "$project_dir/patches/add_online_gameplay_city_v36.py"
 
