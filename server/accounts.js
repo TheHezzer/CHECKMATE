@@ -45,7 +45,8 @@ function publicProfile(account) {
     losses: account.losses,
     draws: account.draws,
     matches: account.matches,
-    createdAt: account.createdAt
+    createdAt: account.createdAt,
+    isAdmin: account.role === "admin"
   };
 }
 
@@ -57,7 +58,7 @@ export function divisionFor(rating) {
   return "Bronze";
 }
 
-export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FILE || path.join(process.cwd(), "data", "accounts.json"), tokenSecret = process.env.CHECKMATE_TOKEN_SECRET || crypto.randomBytes(32).toString("hex") } = {}) {
+export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FILE || path.join(process.cwd(), "data", "accounts.json"), tokenSecret = process.env.CHECKMATE_TOKEN_SECRET || crypto.randomBytes(32).toString("hex"), adminUsername = process.env.CHECKMATE_ADMIN_USERNAME || "TheHezzer", adminPassword = process.env.CHECKMATE_ADMIN_PASSWORD || "" } = {}) {
   let accounts = [];
   let loaded = false;
   let writeQueue = Promise.resolve();
@@ -120,6 +121,7 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     if (typeof password !== "string" || password.length < 8 || password.length > 128) {
       return { status: 400, body: { error: "PASSWORD_INVALID", message: "Password must be 8-128 characters." } };
     }
+    if (cleanName.toLowerCase() === String(adminUsername).toLowerCase() && (!adminPassword || password !== adminPassword)) return { status: 403, body: { error: "ADMIN_USERNAME_RESERVED" } };
     if (accounts.some(account => account.username.toLowerCase() === cleanName.toLowerCase())) {
       return { status: 409, body: { error: "USERNAME_TAKEN" } };
     }
@@ -130,6 +132,7 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     const account = {
       id: crypto.randomUUID(),
       username: cleanName,
+      role: cleanName.toLowerCase() === String(adminUsername).toLowerCase() && adminPassword && password === adminPassword ? "admin" : "player",
       salt: salt.toString("hex"),
       passwordHash,
       rating: 1000,
@@ -154,6 +157,7 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
       crypto.scrypt(password, Buffer.from(account.salt, "hex"), 64, (error, derived) => error ? reject(error) : resolve(derived.toString("hex")));
     });
     if (!safeEqual(candidate, account.passwordHash)) return { status: 401, body: { error: "INVALID_CREDENTIALS" } };
+    if (account.username.toLowerCase() === String(adminUsername).toLowerCase() && adminPassword && password === adminPassword && account.role !== "admin") { account.role = "admin"; await persist(); }
     return { status: 200, body: { token: issueToken(account), account: publicProfile(account) } };
   }
 
@@ -179,6 +183,23 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     await load();
     const account = verifyToken(token);
     return account ? { status: 200, body: { city: cityPayload(account) } } : { status: 401, body: { error: "UNAUTHORIZED" } };
+  }
+
+  async function adminGrantResources(token, { username, zloty = 0, xp = 0, gambits = 0 } = {}) {
+    await load();
+    const admin = verifyToken(token);
+    if (!admin) return { status: 401, body: { error: "UNAUTHORIZED" } };
+    if (admin.role !== "admin") return { status: 403, body: { error: "ADMIN_REQUIRED" } };
+    const targetName = String(username || "").trim().toLowerCase();
+    const target = accounts.find(item => item.username.toLowerCase() === targetName);
+    if (!target) return { status: 404, body: { error: "PLAYER_NOT_FOUND" } };
+    const amounts = { zloty: Number(zloty), xp: Number(xp), gambits: Number(gambits) };
+    for (const [key, amount] of Object.entries(amounts)) if (!Number.isSafeInteger(amount) || amount < 0 || amount > 1000000) return { status: 400, body: { error: "INVALID_GRANT_AMOUNT", resource: key } };
+    if (!Object.values(amounts).some(amount => amount > 0)) return { status: 400, body: { error: "EMPTY_GRANT" } };
+    const city = ensureCity(target);
+    city.wallet.zloty += amounts.zloty; city.wallet.xp += amounts.xp; city.wallet.gambits += amounts.gambits;
+    await persist();
+    return { status: 200, body: { username: target.username, wallet: { ...city.wallet } } };
   }
 
   async function cityUnlockPiece(token, piece) {
@@ -283,5 +304,5 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return rows;
   }
 
-  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, awardMatchById, reserveClassicMatchPiece, refundClassicMatchPieceById };
+  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, adminGrantResources, awardMatchById, reserveClassicMatchPiece, refundClassicMatchPieceById };
 }
