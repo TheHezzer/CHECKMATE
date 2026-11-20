@@ -121,7 +121,7 @@ test("authenticated Classic queue reserves the selected piece cost and refunds c
  const headers={"content-type":"application/json","authorization":"Bearer "+registered.token};
  const before=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
  assert.equal(before.city.wallet.zloty,12750);
- const queued=await fetch(base+"/matchmaking/queue",{method:"POST",headers,body:JSON.stringify({playerId:"local-fake-id",playerName:"Buyer",piece:"Ферзь",mode:"classic",rating:1000})}).then(r=>r.json());
+ const queued=await fetch(base+"/matchmaking/queue",{method:"POST",headers,body:JSON.stringify({playerId:"local-fake-id",playerName:"Buyer",piece:"Ферзь",mode:"reserve_test",rating:1000})}).then(r=>r.json());
  assert.equal(queued.status,"waiting");
  const charged=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
  assert.equal(charged.city.wallet.zloty,12230);
