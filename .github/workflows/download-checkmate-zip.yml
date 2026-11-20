@@ -29,6 +29,7 @@ on:
     paths:
       - '.github/workflows/download-checkmate-zip.yml'
       - 'patches/**'
+      - 'qa/**'
       - 'server/**'
       - '*.zip'
 
@@ -275,6 +276,8 @@ jobs:
           mkdir -p "$project_dir/qa"
           cp qa/checkmate_gameplay_smoke.gd "$project_dir/qa/checkmate_gameplay_smoke.gd"
           timeout 120s "$GODOT_BIN" --headless --path "$project_dir" --script res://qa/checkmate_gameplay_smoke.gd 2>&1 | tee gameplay-qa.log
+          cp qa/checkmate_ui_clickthrough.gd "$project_dir/qa/checkmate_ui_clickthrough.gd"
+          timeout 120s "$GODOT_BIN" --headless --path "$project_dir" --script res://qa/checkmate_ui_clickthrough.gd 2>&1 | tee ui-clickthrough-qa.log
 
           if ! command -v Xvfb >/dev/null 2>&1 || ! command -v xdotool >/dev/null 2>&1; then
             timeout 90s sudo apt-get install -y --no-install-recommends xvfb xdotool
@@ -388,5 +391,6 @@ jobs:
             visual-run.log
             standard-run.log
             gameplay-qa.log
+            ui-clickthrough-qa.log
           if-no-files-found: error
           retention-days: 14
