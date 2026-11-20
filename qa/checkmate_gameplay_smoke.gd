@@ -30,6 +30,16 @@ func _run() -> void:
     game.local_self_play_active = true
     game._start_game("Стандартные шахматы")
     _check(not game.preview_pawn.visible, "menu preview pawn is hidden during a live match")
+    var opening_pawn: Node3D = game._get_game_piece_at(4, 6)
+    game.selected_game_piece = opening_pawn
+    game._update_turn_highlights()
+    var legal_markers := 0
+    for marker in game.turn_highlight_nodes:
+        if marker is MeshInstance3D and marker.mesh is CylinderMesh:
+            legal_markers += 1
+    _check(legal_markers == 2, "selecting the e2 pawn visibly creates exactly two legal destination markers")
+    game.selected_game_piece = null
+    game._update_turn_highlights()
     var menu_button: Button = null
     for node in game.game_panel.find_children("*", "Button", true, false):
         if node is Button and str(node.text).contains("МЕНЮ"):
@@ -236,6 +246,37 @@ func _run() -> void:
     _check(game._city_offline_is_legal({"name":"Пешка","team":"bot","col":0,"row":1},0,2,false), "bot pawn has legal forward movement")
     game._city_offline_exit()
     _check(not game.city_offline_active and game.castle_hub_battle_panel.visible, "leaving offline battle returns to Chess City hub")
+
+    # A decisive Chess City win pays the local wallet and grants one persistent roulette ticket.
+    game.city_offline_active = true
+    game.city_offline_units = {
+        "0,6":{"name":"Ферзь","team":"player","col":0,"row":6,"health":200,"max_health":200,"armor":0,"max_armor":0,"damage":115,"shield":0,"max_shield":0},
+        "0,1":{"name":"Пешка","team":"bot","col":0,"row":1,"health":1,"max_health":100,"armor":0,"max_armor":0,"damage":40,"shield":0,"max_shield":0}
+    }
+    var win_zloty_before := int(game.balances["zloty"])
+    var win_xp_before := int(game.balances["xp"])
+    var spins_before := game.roulette_spins
+    game._city_offline_attack("0,6","0,1")
+    _check(int(game.balances["zloty"]) == win_zloty_before + 300, "Chess City victory awards 300 Zloty")
+    _check(int(game.balances["xp"]) == win_xp_before + 120, "Chess City victory awards 120 XP")
+    _check(game.roulette_spins == spins_before + 1, "Chess City victory grants one roulette spin")
+    _check(not game.city_offline_active, "Chess City battle closes its active state after victory")
+
+    # A loss still pays a smaller participation reward but does not grant a win spin.
+    game.city_offline_active = true
+    game.city_offline_units = {
+        "0,6":{"name":"Пешка","team":"player","col":0,"row":6,"health":1,"max_health":100,"armor":0,"max_armor":0,"damage":40,"shield":0,"max_shield":0},
+        "0,1":{"name":"Ферзь","team":"bot","col":0,"row":1,"health":200,"max_health":200,"armor":0,"max_armor":0,"damage":115,"shield":0,"max_shield":0}
+    }
+    var loss_zloty_before := int(game.balances["zloty"])
+    var loss_xp_before := int(game.balances["xp"])
+    spins_before = game.roulette_spins
+    game._city_offline_attack("0,1","0,6")
+    _check(int(game.balances["zloty"]) == loss_zloty_before + 150, "Chess City defeat awards 150 Zloty participation reward")
+    _check(int(game.balances["xp"]) == loss_xp_before + 60, "Chess City defeat awards 60 XP participation reward")
+    _check(game.roulette_spins == spins_before, "Chess City defeat does not grant a win roulette spin")
+    var saved_city_wallet := ConfigFile.new()
+    _check(saved_city_wallet.load("user://checkmate_economy.cfg") == OK and int(saved_city_wallet.get_value("wallet","roulette_spins",-1)) == game.roulette_spins, "roulette tickets persist after the match")
     game._close_city_screen()
 
     print("CHECKMATE QA SUMMARY: %d checks, %d failures" % [checks, failures.size()])
