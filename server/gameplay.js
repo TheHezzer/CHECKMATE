@@ -133,8 +133,8 @@ function makeInitialBoard(players){
 }
 function isVoteMode(state){return /голос|vote/i.test(String(state?.mode||""));}
 export function createGameState(match){
-  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,abandoned:false,lastSeenAt:now,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
   const now=Date.now();
+  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,abandoned:false,lastSeenAt:now,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
   const whiteStart=players.find(p=>p.playerId===match.startingPlayerId&&p.team==="white")||players.find(p=>p.team==="white");
   const blackPlayers=players.filter(p=>p.team==="black");
   const blackStart=blackPlayers.length?blackPlayers[crypto.randomInt(0,blackPlayers.length)]:null;
