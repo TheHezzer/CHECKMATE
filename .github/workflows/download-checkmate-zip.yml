@@ -1,6 +1,7 @@
 name: Build CHECKMATE classic v78 — Chess City match rewards
 # v76 randomizes local test colors and adds a manual self-play chess test
 # v78 updates Chess City-only match rewards and economy isolation
+# Re-run after correcting the v78 output archive path.
 # v77 adds the staged city economy and shop interface
 # v66 profile and admin controls
 # v66 bot test fix
