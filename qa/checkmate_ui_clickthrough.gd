@@ -42,7 +42,7 @@ func _run() -> void:
     _check(game.mode_choice_buttons.size() == 3, "three selectable chess modes are present")
     for i in range(game.mode_choice_buttons.size()):
         var mode_button: Button = game.mode_choice_buttons[i]
-        var mode_name := ["Классика", "Командное голосование", "Стандартные шахматы"][i]
+        var mode_name: String = ["Классика", "Командное голосование", "Стандартные шахматы"][i]
         mode_button.emit_signal("pressed")
         await process_frame
         _check(game.selected_mode == mode_name, "mode card selects " + mode_name)
