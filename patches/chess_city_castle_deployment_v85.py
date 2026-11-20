@@ -264,7 +264,7 @@ func _city_deploy_cell_pressed(col: int, row: int) -> void:
         return
     city_army[key] = city_selected_piece
     _city_save_state()
-    city_deploy_status.text = "%s размещена на %s." % [city_selected_piece, char(97 + col) + str(8 - row)]
+    city_deploy_status.text = "%s размещена на %s." % [city_selected_piece, "abcdefgh".substr(col, 1) + str(8 - row)]
     _refresh_city_deployment()
 
 func _city_clear_deploy_selection() -> void:
@@ -361,12 +361,30 @@ func _close_city_battle_screen() -> void:
 if "func _build_city_battle_screen() -> void:" not in s:
     s += "\n" + city_ui + "\n"
 
-# Replace permanent shield research with regenerating armor; shields are temporary paid match add-ons.
-s = s.replace('"shield"', '"armor"')
-s = s.replace('ЩИТ', 'БРОНЯ')
-s = s.replace('UpgradeShieldButton', 'UpgradeArmorButton')
-s = s.replace('10 ЩИТА', '10 БРОНИ')
-s = s.replace('var shield_factor', 'var armor_factor')
+# Replace only the permanent figure-research stat with regenerating armor.
+# Combat shield fields elsewhere remain available for the temporary paid battle add-on.
+for function_name in [
+    "_build_piece_progression_panel",
+    "_piece_progress_defaults",
+    "_piece_progress_data",
+    "_piece_upgrade_cost",
+    "_refresh_piece_progression",
+    "_piece_total_level",
+    "_upgrade_piece_stat",
+    "_unlock_next_piece_tier"
+]:
+    function_start = s.find("func " + function_name + "(")
+    if function_start < 0:
+        raise SystemExit("Armor research function missing: " + function_name)
+    function_end = s.find("\nfunc ", function_start + 10)
+    if function_end < 0:
+        function_end = len(s)
+    block = s[function_start:function_end]
+    block = block.replace('"shield"', '"armor"')
+    block = block.replace("ЩИТ", "БРОНЯ")
+    block = block.replace("UpgradeShieldButton", "UpgradeArmorButton")
+    block = block.replace("10 ЩИТА", "10 БРОНИ")
+    s = s[:function_start] + block + s[function_end:]
 
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v85: new Chess City castle hub, persistent daily energy, free-form home-side army deployment, castle progression gates and attack preparation.")
