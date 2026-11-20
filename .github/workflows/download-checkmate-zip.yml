@@ -258,6 +258,9 @@ jobs:
             echo "Godot runtime validation reported errors."
             exit 1
           fi
+          mkdir -p "$project_dir/qa"
+          cp qa/checkmate_gameplay_smoke.gd "$project_dir/qa/checkmate_gameplay_smoke.gd"
+          "$GODOT_BIN" --headless --path "$project_dir" --script res://qa/checkmate_gameplay_smoke.gd 2>&1 | tee gameplay-qa.log
 
           if ! command -v Xvfb >/dev/null 2>&1 || ! command -v xdotool >/dev/null 2>&1; then
             sudo apt-get update -qq
@@ -363,5 +366,6 @@ jobs:
             CHECKMATE_chess_city_v104.png
             visual-run.log
             standard-run.log
+            gameplay-qa.log
           if-no-files-found: error
           retention-days: 14
