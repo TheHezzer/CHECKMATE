@@ -97,5 +97,14 @@ rep('''    growth.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     var next_unlock := _ornate_button(progression_next_card, "ОТКРЫТЬ УРОВЕНЬ", 0.08, 0.84, 0.92, 0.98, 10, "party")
 ''', "research unlock button position")
 
+
+# City HUD labels were taller than their allocated rows and visibly collided.
+rep('''    castle_hub_army_power_label = _add_label(frame, "СИЛА АРМИИ 0", Vector2(18, 134), Vector2(500, 28), 15, Color(0.84,0.81,0.74))
+''', '''    castle_hub_army_power_label = _add_label(frame, "СИЛА АРМИИ 0", Vector2(18, 134), Vector2(500, 28), 15, Color(0.84,0.81,0.74))
+    castle_hub_energy_label.add_theme_font_size_override("font_size", 22)
+    castle_hub_castle_level_label.add_theme_font_size_override("font_size", 24)
+    castle_hub_army_power_label.add_theme_font_size_override("font_size", 20)
+''', "city HUD label font sizes")
+
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v105: gameplay UI taps no longer collide with board handling, preview pawn is hidden in matches, and research-card text is fitted.")
