@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v50 — clean main menu and silhouettes
+name: Build CHECKMATE classic v51 — clean main menu and silhouettes
 # Rebuild after correcting the v46 patch path.
 
 concurrency:
@@ -120,9 +120,11 @@ jobs:
           cp patches/restore_landscape_v48.py "$project_dir/patches/restore_landscape_v48.py"
           python "$project_dir/patches/restore_landscape_v48.py"
           cp patches/fix_accounts_and_developer_test_v49.py "$project_dir/patches/fix_accounts_and_developer_test_v49.py"
-          cp patches/upgrade_menu_camera_v50.py "$project_dir/patches/upgrade_menu_camera_v50.py"
-          python "$project_dir/patches/upgrade_menu_camera_v50.py"
+          cp patches/upgrade_menu_camera_v51.py "$project_dir/patches/upgrade_menu_camera_v51.py"
+          python "$project_dir/patches/upgrade_menu_camera_v51.py"
           python "$project_dir/patches/fix_accounts_and_developer_test_v49.py"
+          cp patches/build_3d_main_hall_v51.py "$project_dir/patches/build_3d_main_hall_v51.py"
+          python "$project_dir/patches/build_3d_main_hall_v51.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -140,23 +142,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v50.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v50.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v51.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v51.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v50.zip" builds/CHECKMATE_classic_v50.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v51.zip" builds/CHECKMATE_classic_v51.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v50 build"
+          commit_message: "Save CHECKMATE classic v51 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v50.zip
+          file_pattern: builds/CHECKMATE_classic_v51.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v50
-          path: CHECKMATE_classic_v50.zip
+          name: CHECKMATE-classic-v51
+          path: CHECKMATE_classic_v51.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
