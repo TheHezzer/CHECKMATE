@@ -29,6 +29,13 @@ func _run() -> void:
     # Legal movement and illegal movement.
     game.local_self_play_active = true
     game._start_game("Стандартные шахматы")
+    _check(not game.preview_pawn.visible, "menu preview pawn is hidden during a live match")
+    var menu_button: Button = null
+    for node in game.game_panel.find_children("*", "Button", true, false):
+        if node is Button and str(node.text).contains("МЕНЮ"):
+            menu_button = node
+            break
+    _check(menu_button != null and game._is_game_ui_control_hit(menu_button.get_global_rect().get_center()), "menu button is protected from board click handling")
     game._process_classic_move(4, 6, 4, 4)
     _check(game._get_game_piece_at(4, 4) != null and game.current_team == "black", "white pawn e2-e4 moves and passes turn")
     var previous_move: Dictionary = game.last_move.duplicate(true)
@@ -78,9 +85,18 @@ func _run() -> void:
     game.local_user_team = "observer"
     game.local_user_slot = 99
     game._start_game("Стандартные шахматы")
+    game.local_user_slot = 1
     game._make_bot_move()
     await create_timer(0.60).timeout
     _check(not game.last_move.is_empty() and game.current_team == "black", "bot generates and executes a legal opening move")
+
+    game._return_to_menu()
+    _check(game.preview_pawn.visible, "menu preview pawn returns after leaving a match")
+    game._open_piece_progression("Пешка")
+    await process_frame
+    var growth := game.progression_next_card.find_child("NextTierGrowth", true, false) as Label
+    var unlock := game.progression_next_card.find_child("NextTierUnlockButton", true, false) as Button
+    _check(growth != null and unlock != null and not growth.get_global_rect().intersects(unlock.get_global_rect()), "research growth text does not overlap the unlock button")
 
     print("CHECKMATE QA SUMMARY: %d checks, %d failures" % [checks, failures.size()])
     if failures.is_empty():
