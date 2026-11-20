@@ -38,7 +38,7 @@ permissions:
 jobs:
   build-project:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -246,7 +246,8 @@ jobs:
           fi
 
           if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
-            timeout 300s sudo apt-get install -y --no-install-recommends xvfb ffmpeg xdotool
+            sudo apt-get update -qq
+            timeout 1200s sudo apt-get install -y --no-install-recommends xvfb ffmpeg xdotool
           fi
           Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
           XVFB_PID=$!
