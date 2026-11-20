@@ -160,7 +160,7 @@ test("Classic entry bundle prices are consistent for every second-piece role",as
 
 test("abandoned team match finishes and sends a persistent result with rule warning and rating penalty",async()=>withServer(async base=>{
  const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"LeaverTest",password:"leave-test-pass"})}).then(r=>r.json());
- const roles=["Ладья","Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
+ const roles=["Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
  const tickets=new Map();
  const playerId=registered.account.playerId;
  const accountQueue=await fetch(base+"/matchmaking/queue",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+registered.token},body:JSON.stringify({playerName:"LeaverTest",mode:"abandon_test",rating:1000,piece:"Ладья"})});
