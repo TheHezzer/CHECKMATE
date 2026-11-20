@@ -269,4 +269,7 @@ if anchor not in s:
 s = s.replace(anchor, anchor + '        _season_pass_add_points(40)\n', 1)
 
 p.write_text(s, encoding="utf-8")
+for line_no in range(3008, 3028):
+    if line_no <= len(s.splitlines()):
+        print("DEBUG %d: %s" % (line_no, s.splitlines()[line_no - 1]))
 print("CHECKMATE v84: 30-day season pass, 15 levels, free and premium reward tracks, persistent claims and City match progression.")
