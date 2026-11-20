@@ -229,7 +229,7 @@ s = s.replace('event_title.add_theme_font_size_override("font_size", 19)', 'even
 s = s.replace('event_desc.add_theme_font_size_override("font_size", 15)', 'event_desc.add_theme_font_size_override("font_size", 17)')
 
 # Restore the mode-card selection callback that sits between the builder and refresh functions.
-s = s.replace("func _refresh_mode_selection() -> void:", "func _select_mode_card(mode_name: String) -> void:\\n    selected_mode = mode_name\\n    _refresh_mode_selection()\\n\\nfunc _refresh_mode_selection() -> void:", 1)
+s = s.replace("func _refresh_mode_selection() -> void:", "func _select_mode_card(mode_name: String) -> void:\n    selected_mode = mode_name\n    _refresh_mode_selection()\n\nfunc _refresh_mode_selection() -> void:", 1)
 
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v63 layout and typography patch applied")
