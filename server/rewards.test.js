@@ -36,3 +36,8 @@ test("reward values are capped by quality and tactical event limits", () => {
   assert.equal(reward.breakdown.tactics.xp, 20);
   assert.equal(reward.breakdown.tactics.zloty, 40);
 });
+
+test("even an inactive loss earns enough for the cheapest pawn-plus-knight bundle", () => {
+  const reward = calculateMatchReward({ winnerTeam: "black", playerTeam: "white", stats: {} });
+  assert.equal(reward.zloty, 30);
+});
