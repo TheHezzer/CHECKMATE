@@ -19,8 +19,8 @@ rep('''    var intro := _add_label(frame, "Заходи каждый день п
     login_streak_status_label = _add_label(frame, "", Vector2(22, 140), Vector2(1050, 30), 5, Color(0.78,0.88,0.72))
 ''', "login streak header spacing")
 rep('''        var y1 := 0.235 + float(row) * 0.245
-        var y2 := y1 + 0.205
-''','''        var y1 := 0.255 + float(row) * 0.225
+        var y2 := y1 + 0.225
+''','''        var y1 := 0.255 + float(row) * 0.245
         var y2 := y1 + 0.205
 ''', "login streak card grid spacing")
 rep('''        var day_title := _add_label(card, "ДЕНЬ " + str(i + 1), Vector2(8, 8), Vector2(180, 30), 15, PALE_GOLD)
@@ -33,11 +33,11 @@ rep('''        var reward_label := _add_label(card, reward_text, Vector2(8, 44),
         reward_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
         var state_label := _add_label(card, "ОЖИДАНИЕ", Vector2(8, 98), Vector2(180, 26), 12, Color(0.70,0.68,0.62))
         state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-''','''        var reward_label := _add_label(card, reward_text, Vector2(8, 58), Vector2(250, 54), 5, Color(0.90,0.86,0.78))
+''','''        var reward_label := _add_label(card, reward_text, Vector2(8, 65), Vector2(250, 80), 5, Color(0.90,0.86,0.78))
         reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
         reward_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
         reward_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-        var state_label := _add_label(card, "ОЖИДАНИЕ", Vector2(8, 118), Vector2(250, 23), 1, Color(0.70,0.68,0.62))
+        var state_label := _add_label(card, "ОЖИДАНИЕ", Vector2(8, 155), Vector2(250, 23), 1, Color(0.70,0.68,0.62))
         state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 ''', "login streak reward and state label spacing")
 
