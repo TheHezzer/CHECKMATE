@@ -63,8 +63,14 @@ func _run() -> void:
     game._select_mode_card("Стандартные шахматы")
     _check(await _click(game.mode_selection_panel, "НАЧАТЬ"), "standard chess Start button responds")
     _check(game.game_panel.visible and game.standard_chess_mode_active, "standard chess enters a live match")
-    await create_timer(1.0).timeout
-    _check(not game.last_move.is_empty(), "standard chess bot makes an opening move")
+    if game.local_user_team == "black":
+        await create_timer(2.0).timeout
+        _check(not game.last_move.is_empty(), "standard chess bot opens when player is black")
+    else:
+        _check(game.current_team == "white", "standard chess waits for the human white opening")
+        game._process_classic_move(4, 6, 4, 4)
+        await create_timer(2.0).timeout
+        _check(not game.last_move.is_empty() and game.current_team == "white", "standard chess bot replies after the human opening")
     _check(await _click(game.game_panel, "В МЕНЮ"), "live match Back to menu button responds")
     _check(game.menu_panel.visible, "live match returns to main menu")
 
@@ -79,7 +85,7 @@ func _run() -> void:
     _check(game.daily_tasks_panel.visible, "daily tasks screen opens")
     _check(await _click(game.daily_tasks_panel, "БОНУС ЗА ВХОД"), "login streak button responds")
     _check(game.login_streak_panel.visible, "login streak screen opens")
-    _check(await _click(game.login_streak_panel, "НАЗАД"), "login streak Back button responds")
+    _check(await _click(game.login_streak_panel, "К ЗАДАНИЯМ"), "login streak Back button responds")
     _check(game.daily_tasks_panel.visible, "login streak returns to daily tasks")
     _check(await _click(game.daily_tasks_panel, "В МАГАЗИН"), "daily tasks Back button responds")
     _check(game.shop_panel.visible, "daily tasks returns to shop")
@@ -91,7 +97,7 @@ func _run() -> void:
 
     _check(await _click(game.shop_panel, "ВЫБРАТЬ ПАКЕТ"), "Gambit packages shop action responds")
     _check(game.gambit_packs_panel.visible, "Gambit packages screen opens")
-    _check(await _click(game.gambit_packs_panel, "НАЗАД"), "Gambit packages Back button responds")
+    _check(await _click(game.gambit_packs_panel, "В МАГАЗИН"), "Gambit packages Back button responds")
     _check(game.shop_panel.visible, "Gambit packages returns to shop")
     _check(await _click(game.shop_panel, "НАЗАД"), "Shop Back button responds")
     _check(game.menu_panel.visible, "shop returns to main menu")
@@ -111,7 +117,7 @@ func _run() -> void:
     _check(game.castle_hub_battle_panel.visible, "deployment returns to castle hub")
     _check(await _click(game.castle_hub_battle_panel, "НАПАСТЬ"), "castle Attack button responds")
     _check(game.city_offline_active and game.city_offline_battle_panel.visible, "Attack opens offline battle")
-    _check(await _click(game.city_offline_battle_panel, "НАЗАД"), "offline battle Back button responds")
+    _check(await _click(game.city_offline_battle_panel, "ВЫЙТИ"), "offline battle Back button responds")
     _check(game.castle_hub_battle_panel.visible, "offline battle returns to castle hub")
     _check(await _click(game.castle_hub_battle_panel, "НАЗАД"), "castle hub Back button responds")
     _check(game.menu_panel.visible, "castle hub returns to main menu")
