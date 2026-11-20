@@ -1,5 +1,5 @@
-name: Build CHECKMATE classic v71 — preserve purchased pieces in preparation
-# v71 preserve purchased pieces while switching; v70 wallet typography; v69 offline controls
+name: Build CHECKMATE classic v72 — menu cleanup and remembered login
+# v72 removes fixed center piece and wallet strip, refines HUD and adds remember-me login
 # v66 profile and admin controls
 # v66 bot test fix
 # Rebuild after correcting the v46 patch path.
@@ -168,6 +168,8 @@ jobs:
           python "$project_dir/patches/resize_wallet_and_left_cards_v70.py"
           cp patches/fix_preparation_piece_repurchase_v71.py "$project_dir/patches/fix_preparation_piece_repurchase_v71.py"
           python "$project_dir/patches/fix_preparation_piece_repurchase_v71.py"
+          cp patches/fix_menu_board_remember_v72.py "$project_dir/patches/fix_menu_board_remember_v72.py"
+          python "$project_dir/patches/fix_menu_board_remember_v72.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -185,23 +187,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v71.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v71.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v72.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v72.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v71.zip" builds/CHECKMATE_classic_v71.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v72.zip" builds/CHECKMATE_classic_v72.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v71 build"
+          commit_message: "Save CHECKMATE classic v72 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v71.zip
+          file_pattern: builds/CHECKMATE_classic_v72.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v71
-          path: CHECKMATE_classic_v71.zip
+          name: CHECKMATE-classic-v72
+          path: CHECKMATE_classic_v72.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
