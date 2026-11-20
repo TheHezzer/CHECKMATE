@@ -196,7 +196,7 @@ function resolveOpeningVote(match,now=Date.now()){
   const counts=new Map();
   for(const candidate of Object.values(vote.votes||{}))counts.set(candidate,(counts.get(candidate)||0)+1);
   let winnerId=vote.defaultPlayerId||state.startingPlayerId,best=-1;
-  for(const player of state.players.filter(p=>p.team==="white").sort((a,b)=>a.slot-b.slot)){
+  if(counts.size>0) for(const player of state.players.filter(p=>p.team==="white").sort((a,b)=>a.slot-b.slot)){
     const count=counts.get(player.playerId)||0;
     if(count>best){best=count;winnerId=player.playerId;}
   }
