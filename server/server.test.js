@@ -115,3 +115,18 @@ test("matched players receive private session tokens and can use the authoritati
  const denied=await fetch(base+"/matches/"+matched.matchId+"/state",{headers:{"x-player-session":"wrong-token"}});
  assert.equal(denied.status,401);
 }));
+
+test("authenticated Classic queue reserves the selected piece cost and refunds cancellation",async()=>withServer(async base=>{
+ const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"classicbuyer",password:"securepass123"})}).then(r=>r.json());
+ const headers={"content-type":"application/json","authorization":"Bearer "+registered.token};
+ const before=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
+ assert.equal(before.city.wallet.zloty,12750);
+ const queued=await fetch(base+"/matchmaking/queue",{method:"POST",headers,body:JSON.stringify({playerId:"local-fake-id",playerName:"Buyer",piece:"Ферзь",mode:"classic",rating:1000})}).then(r=>r.json());
+ assert.equal(queued.status,"waiting");
+ const charged=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
+ assert.equal(charged.city.wallet.zloty,12230);
+ const cancelled=await fetch(base+"/matchmaking/queue/"+queued.ticket+"/cancel",{method:"POST",headers}).then(r=>r.json());
+ assert.equal(cancelled.purchaseRefunded,true);
+ const refunded=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
+ assert.equal(refunded.city.wallet.zloty,12750);
+}));
