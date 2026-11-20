@@ -261,6 +261,13 @@ export function createMatchmakingServer(options = {}) {
       }
 
       if (req.method === "GET" && url.pathname === "/notifications") {
+        for (const match of matches.values()) {
+          if (match.game?.status === "active") {
+            const viewerId = match.game.players[0]?.playerId || "";
+            getGameState(match, viewerId);
+            await deliverMatchResults(match, accounts);
+          }
+        }
         const authorization = String(req.headers.authorization || "");
         const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
         const result = await accounts.getNotifications(token, Number(url.searchParams.get("limit") || 30));
@@ -383,8 +390,12 @@ export function createMatchmakingServer(options = {}) {
         const entry=[...match.sessionTokens.entries()].find(([,token])=>token===sessionToken);
         if(!entry)return send(res,401,{error:"INVALID_MATCH_SESSION"});
         const playerId=entry[0],action=gameplayRoute[2];
+        const activeSessionPlayer=match.game.players.find(item=>item.playerId===playerId);
+        if(activeSessionPlayer&&!activeSessionPlayer.abandoned) activeSessionPlayer.lastSeenAt=Date.now();
         if(req.method==="GET"&&action==="state"){
           const state=getGameState(match,playerId);
+          const viewerPlayer=match.game.players.find(item=>item.playerId===playerId);
+          if(viewerPlayer&&!viewerPlayer.abandoned&&match.game.status==="active") viewerPlayer.lastSeenAt=Date.now();
           await deliverMatchResults(match,accounts);
           if(state&&match.rewardResults) state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
           return state?send(res,200,state):send(res,404,{error:"MATCH_NOT_FOUND"});
