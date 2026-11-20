@@ -5,157 +5,157 @@ p = Path(__file__).resolve().parent.parent / "scripts" / "main.gd"
 s = p.read_text(encoding="utf-8")
 
 # City screen state is stored with the existing economy profile.
-if "var city_battle_panel: Control" not in s:
+if "var castle_hub_battle_panel: Control" not in s:
     anchor = "var shop_panel: Control"
     if anchor not in s:
         raise SystemExit("City v85: shop_panel anchor missing")
     s = s.replace(anchor, anchor + """
-var city_battle_panel: Control
-var city_deploy_panel: Control
-var city_castle_level_label: Label
-var city_energy_label: Label
-var city_army_power_label: Label
-var city_deploy_status: Label
-var city_piece_buttons: Dictionary = {}
-var city_board_cells: Array = []
-var city_selected_piece: String = ""
-var city_army: Dictionary = {}
-var city_state: Dictionary = {}
-var city_deploy_visible := false
+var castle_hub_battle_panel: Control
+var castle_hub_deploy_panel: Control
+var castle_hub_castle_level_label: Label
+var castle_hub_energy_label: Label
+var castle_hub_army_power_label: Label
+var castle_hub_deploy_status: Label
+var castle_hub_piece_buttons: Dictionary = {}
+var castle_hub_board_cells: Array = []
+var castle_hub_selected_piece: String = ""
+var castle_hub_army: Dictionary = {}
+var castle_hub_state: Dictionary = {}
+var castle_hub_deploy_visible := false
 """, 1)
 
 # Persist city progress and army layout.
 anchor = '    cfg.set_value("season", "pass_state", season_pass_state)\n'
 if anchor not in s:
     raise SystemExit("City v85: economy save anchor missing")
-s = s.replace(anchor, anchor + '    cfg.set_value("city", "state", city_state)\n', 1)
+s = s.replace(anchor, anchor + '    cfg.set_value("city", "state", castle_hub_state)\n', 1)
 anchor = '        season_pass_state = cfg.get_value("season", "pass_state", season_pass_state)\n'
 if anchor not in s:
     raise SystemExit("City v85: economy load anchor missing")
-s = s.replace(anchor, anchor + '        city_state = cfg.get_value("city", "state", city_state)\n', 1)
+s = s.replace(anchor, anchor + '        castle_hub_state = cfg.get_value("city", "state", castle_hub_state)\n', 1)
 
 # Create the city battle UI during the normal UI build.
 anchor = "    _build_season_pass_screen()\n    _build_onboarding_screen()"
 if anchor not in s:
     raise SystemExit("City v85: screen build anchor missing")
-s = s.replace(anchor, "    _build_season_pass_screen()\n    _build_city_battle_screen()\n    _build_onboarding_screen()", 1)
+s = s.replace(anchor, "    _build_season_pass_screen()\n    _build_castle_hub_battle_screen()\n    _build_onboarding_screen()", 1)
 
 # Replace the former city entry point so the city button opens the new castle hub.
-start = s.find("func _open_city_screen() -> void:")
+start = s.find("func _open_castle_hub_screen() -> void:")
 if start < 0:
-    raise SystemExit("City v85: _open_city_screen not found")
+    raise SystemExit("City v85: _open_castle_hub_screen not found")
 end = s.find("\nfunc ", start + 10)
 if end < 0:
-    raise SystemExit("City v85: cannot locate end of _open_city_screen")
-replacement = """func _open_city_screen() -> void:
-    _city_ensure_state()
+    raise SystemExit("City v85: cannot locate end of _open_castle_hub_screen")
+replacement = """func _open_castle_hub_screen() -> void:
+    _castle_hub_ensure_state()
     if menu_panel:
         menu_panel.visible = false
-    if city_battle_panel:
-        city_battle_panel.visible = true
-    _refresh_city_battle_screen()
+    if castle_hub_battle_panel:
+        castle_hub_battle_panel.visible = true
+    _refresh_castle_hub_battle_screen()
 """
 s = s[:start] + replacement + s[end:]
 
 city_ui = r'''
-func _city_piece_names() -> Array:
+func _castle_hub_piece_names() -> Array:
     return ["Пешка", "Конь", "Слон", "Ладья", "Ферзь", "Король"]
 
-func _city_ensure_state() -> void:
+func _castle_hub_ensure_state() -> void:
     var today := Time.get_date_string_from_system()
-    if city_state.is_empty():
-        city_state = {
+    if castle_hub_state.is_empty():
+        castle_hub_state = {
             "castle_level":1,
             "energy":150,
             "energy_date":today,
             "army":{},
             "shield_enabled":false
         }
-    var last_date := str(city_state.get("energy_date", today))
+    var last_date := str(castle_hub_state.get("energy_date", today))
     if last_date != today:
-        city_state["energy"] = 150
-        city_state["energy_date"] = today
-    city_state["castle_level"] = clampi(int(city_state.get("castle_level", 1)), 1, 5)
-    city_state["energy"] = clampi(int(city_state.get("energy", 150)), 0, 150)
-    if not (city_state.get("army", {}) is Dictionary):
-        city_state["army"] = {}
-    city_army = city_state.get("army", {}).duplicate(true)
+        castle_hub_state["energy"] = 150
+        castle_hub_state["energy_date"] = today
+    castle_hub_state["castle_level"] = clampi(int(castle_hub_state.get("castle_level", 1)), 1, 5)
+    castle_hub_state["energy"] = clampi(int(castle_hub_state.get("energy", 150)), 0, 150)
+    if not (castle_hub_state.get("army", {}) is Dictionary):
+        castle_hub_state["army"] = {}
+    castle_hub_army = castle_hub_state.get("army", {}).duplicate(true)
 
-func _city_save_state() -> void:
-    city_state["army"] = city_army.duplicate(true)
+func _castle_hub_save_state() -> void:
+    castle_hub_state["army"] = castle_hub_army.duplicate(true)
     _save_economy()
 
-func _city_army_power() -> int:
+func _castle_hub_army_power() -> int:
     var total := 0
-    for key in city_army.keys():
-        var piece := str(city_army[key])
-        var tier := mini(int(city_state.get("castle_level", 1)), int(_piece_progress_data(piece).get("tier", 1)))
+    for key in castle_hub_army.keys():
+        var piece := str(castle_hub_army[key])
+        var tier := mini(int(castle_hub_state.get("castle_level", 1)), int(_piece_progress_data(piece).get("tier", 1)))
         var stats := _piece_progress_defaults(piece, tier)
         total += int(stats.get("health", 0)) + int(stats.get("damage", 0)) * 3
     return total
 
-func _build_city_battle_screen() -> void:
-    city_battle_panel = Control.new()
-    city_battle_panel.name = "ChessCityCastleHub"
-    city_battle_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-    city_battle_panel.visible = false
-    ui.add_child(city_battle_panel)
+func _build_castle_hub_battle_screen() -> void:
+    castle_hub_battle_panel = Control.new()
+    castle_hub_battle_panel.name = "ChessCityCastleHub"
+    castle_hub_battle_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    castle_hub_battle_panel.visible = false
+    ui.add_child(castle_hub_battle_panel)
 
     var shade := ColorRect.new()
     shade.color = Color(0.012, 0.014, 0.018, 0.985)
     shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     shade.mouse_filter = Control.MOUSE_FILTER_STOP
-    city_battle_panel.add_child(shade)
+    castle_hub_battle_panel.add_child(shade)
 
-    var frame := _panel(city_battle_panel, 0.025, 0.035, 0.975, 0.965)
+    var frame := _panel(castle_hub_battle_panel, 0.025, 0.035, 0.975, 0.965)
     var title := _add_label(frame, "ШАХМАТНЫЙ ГОРОД", Vector2(18, 8), Vector2(520, 42), 25, PALE_GOLD)
     title.add_theme_font_size_override("font_size", 25)
     var back := _ornate_button(frame, "← НАЗАД", 0.82, 0.018, 0.98, 0.105, 12, "nav")
-    back.pressed.connect(_close_city_battle_screen)
+    back.pressed.connect(_close_castle_hub_battle_screen)
 
-    city_energy_label = _add_label(frame, "ЭНЕРГИЯ 150 / 150", Vector2(18, 58), Vector2(350, 30), 17, Color(0.76,0.88,0.78))
-    city_castle_level_label = _add_label(frame, "ЗАМОК • УРОВЕНЬ 1", Vector2(18, 96), Vector2(500, 34), 20, PALE_GOLD)
-    city_army_power_label = _add_label(frame, "СИЛА АРМИИ 0", Vector2(18, 134), Vector2(500, 28), 15, Color(0.84,0.81,0.74))
+    castle_hub_energy_label = _add_label(frame, "ЭНЕРГИЯ 150 / 150", Vector2(18, 58), Vector2(350, 30), 17, Color(0.76,0.88,0.78))
+    castle_hub_castle_level_label = _add_label(frame, "ЗАМОК • УРОВЕНЬ 1", Vector2(18, 96), Vector2(500, 34), 20, PALE_GOLD)
+    castle_hub_army_power_label = _add_label(frame, "СИЛА АРМИИ 0", Vector2(18, 134), Vector2(500, 28), 15, Color(0.84,0.81,0.74))
 
     var castle := _ornate_button(frame, "ЗАМОК I\nНАЖМИ, ЧТОБЫ РАССТАВИТЬ АРМИЮ", 0.16, 0.25, 0.84, 0.69, 25, "card")
     castle.name = "CityCastleButton"
     castle.add_theme_font_size_override("font_size", 23)
-    castle.pressed.connect(_open_city_deployment)
+    castle.pressed.connect(_open_castle_hub_deployment)
 
     var upgrade := _ornate_button(frame, "УЛУЧШИТЬ ЗАМОК", 0.20, 0.72, 0.80, 0.82, 15, "nav")
     upgrade.name = "CityCastleUpgradeButton"
-    upgrade.pressed.connect(_upgrade_city_castle)
+    upgrade.pressed.connect(_upgrade_castle_hub_castle)
 
     var attack := _ornate_button(frame, "⚔  НАПАСТЬ  •  10 ЭНЕРГИИ", 0.12, 0.86, 0.88, 0.97, 19, "party")
     attack.name = "CityAttackButton"
-    attack.pressed.connect(_city_attack_pressed)
+    attack.pressed.connect(_castle_hub_attack_pressed)
 
-    _build_city_deployment_panel()
+    _build_castle_hub_deployment_panel()
 
-func _build_city_deployment_panel() -> void:
-    city_deploy_panel = Control.new()
-    city_deploy_panel.name = "CityArmyDeployment"
-    city_deploy_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-    city_deploy_panel.visible = false
-    city_battle_panel.add_child(city_deploy_panel)
+func _build_castle_hub_deployment_panel() -> void:
+    castle_hub_deploy_panel = Control.new()
+    castle_hub_deploy_panel.name = "CityArmyDeployment"
+    castle_hub_deploy_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    castle_hub_deploy_panel.visible = false
+    castle_hub_battle_panel.add_child(castle_hub_deploy_panel)
 
     var shade := ColorRect.new()
     shade.color = Color(0.008,0.009,0.012,0.985)
     shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     shade.mouse_filter = Control.MOUSE_FILTER_STOP
-    city_deploy_panel.add_child(shade)
+    castle_hub_deploy_panel.add_child(shade)
 
-    var frame := _panel(city_deploy_panel, 0.015, 0.025, 0.985, 0.975)
+    var frame := _panel(castle_hub_deploy_panel, 0.015, 0.025, 0.985, 0.975)
     _add_label(frame, "РАССТАНОВКА ОБОРОНЫ", Vector2(12, 6), Vector2(470, 34), 21, PALE_GOLD)
     var back := _ornate_button(frame, "← К ЗАМКУ", 0.80, 0.015, 0.98, 0.095, 11, "nav")
-    back.pressed.connect(_close_city_deployment)
+    back.pressed.connect(_close_castle_hub_deployment)
 
     var note := _add_label(frame, "Выбирай фигуру и ставь её на любую свою клетку. Обычная начальная расстановка не обязательна.", Vector2(12, 46), Vector2(850, 42), 13, Color(0.82,0.79,0.72))
     note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-    city_deploy_status = _add_label(frame, "Выбери фигуру снизу, затем свою клетку.", Vector2(12, 91), Vector2(850, 26), 13, Color(0.76,0.88,0.78))
+    castle_hub_deploy_status = _add_label(frame, "Выбери фигуру снизу, затем свою клетку.", Vector2(12, 91), Vector2(850, 26), 13, Color(0.76,0.88,0.78))
 
-    city_board_cells.clear()
+    castle_hub_board_cells.clear()
     var board := GridContainer.new()
     board.columns = 8
     board.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -192,9 +192,9 @@ func _build_city_deployment_panel() -> void:
             cell.add_theme_font_size_override("font_size", 18)
             cell.set_meta("city_col", col)
             cell.set_meta("city_row", row)
-            cell.pressed.connect(_city_deploy_cell_pressed.bind(col, row))
+            cell.pressed.connect(_castle_hub_deploy_cell_pressed.bind(col, row))
             board.add_child(cell)
-            city_board_cells.append(cell)
+            castle_hub_board_cells.append(cell)
 
     var piece_title := _add_label(frame, "ФИГУРЫ ПЕРВОГО УРОВНЯ", Vector2(12, 0), Vector2(600, 25), 14, PALE_GOLD)
     piece_title.anchor_left = 0.035
@@ -206,84 +206,84 @@ func _build_city_deployment_panel() -> void:
     piece_title.offset_top = 0
     piece_title.offset_bottom = 0
 
-    city_piece_buttons.clear()
-    var names := _city_piece_names()
+    castle_hub_piece_buttons.clear()
+    var names := _castle_hub_piece_names()
     for i in range(names.size()):
         var x1 := 0.025 + float(i) * 0.16
         var x2 := x1 + 0.15
         var button := _ornate_button(frame, str(names[i]).to_upper(), x1, 0.77, x2, 0.88, 10, "nav")
-        button.pressed.connect(_city_select_deploy_piece.bind(str(names[i])))
-        city_piece_buttons[str(names[i])] = button
+        button.pressed.connect(_castle_hub_select_deploy_piece.bind(str(names[i])))
+        castle_hub_piece_buttons[str(names[i])] = button
 
     var clear := _ornate_button(frame, "УБРАТЬ ФИГУРУ", 0.25, 0.90, 0.75, 0.98, 11, "card")
-    clear.pressed.connect(_city_clear_deploy_selection)
-    _refresh_city_deployment()
+    clear.pressed.connect(_castle_hub_clear_deploy_selection)
+    _refresh_castle_hub_deployment()
 
-func _open_city_deployment() -> void:
-    _city_ensure_state()
-    city_selected_piece = ""
-    city_battle_panel.visible = false
-    city_deploy_panel.visible = true
-    _refresh_city_deployment()
+func _open_castle_hub_deployment() -> void:
+    _castle_hub_ensure_state()
+    castle_hub_selected_piece = ""
+    castle_hub_battle_panel.visible = false
+    castle_hub_deploy_panel.visible = true
+    _refresh_castle_hub_deployment()
 
-func _close_city_deployment() -> void:
-    if city_deploy_panel:
-        city_deploy_panel.visible = false
-    if city_battle_panel:
-        city_battle_panel.visible = true
-    city_selected_piece = ""
-    _refresh_city_battle_screen()
+func _close_castle_hub_deployment() -> void:
+    if castle_hub_deploy_panel:
+        castle_hub_deploy_panel.visible = false
+    if castle_hub_battle_panel:
+        castle_hub_battle_panel.visible = true
+    castle_hub_selected_piece = ""
+    _refresh_castle_hub_battle_screen()
 
-func _city_select_deploy_piece(piece: String) -> void:
-    if not _city_piece_names().has(piece):
+func _castle_hub_select_deploy_piece(piece: String) -> void:
+    if not _castle_hub_piece_names().has(piece):
         return
-    city_selected_piece = piece
-    if city_deploy_status:
-        city_deploy_status.text = "Выбрана фигура: %s. Теперь нажми на свою клетку." % piece.to_upper()
-    _refresh_city_deployment()
+    castle_hub_selected_piece = piece
+    if castle_hub_deploy_status:
+        castle_hub_deploy_status.text = "Выбрана фигура: %s. Теперь нажми на свою клетку." % piece.to_upper()
+    _refresh_castle_hub_deployment()
 
-func _city_deploy_cell_pressed(col: int, row: int) -> void:
+func _castle_hub_deploy_cell_pressed(col: int, row: int) -> void:
     if row < 4:
-        city_deploy_status.text = "Это сторона соперника. Расставлять фигуры можно на своих четырёх рядах."
+        castle_hub_deploy_status.text = "Это сторона соперника. Расставлять фигуры можно на своих четырёх рядах."
         return
     var key := "%d,%d" % [col,row]
-    if city_selected_piece == "":
-        if city_army.has(key):
-            city_army.erase(key)
-            _city_save_state()
-            _refresh_city_deployment()
+    if castle_hub_selected_piece == "":
+        if castle_hub_army.has(key):
+            castle_hub_army.erase(key)
+            _castle_hub_save_state()
+            _refresh_castle_hub_deployment()
         else:
-            city_deploy_status.text = "Сначала выбери фигуру внизу."
+            castle_hub_deploy_status.text = "Сначала выбери фигуру внизу."
         return
     var counts := {}
-    for existing in city_army.values():
+    for existing in castle_hub_army.values():
         counts[str(existing)] = int(counts.get(str(existing),0)) + 1
     var limits := {"Пешка":8,"Конь":2,"Слон":2,"Ладья":2,"Ферзь":1,"Король":1}
-    if not city_army.has(key) and int(counts.get(city_selected_piece,0)) >= int(limits.get(city_selected_piece,1)):
-        city_deploy_status.text = "Больше фигур этого типа поставить нельзя."
+    if not castle_hub_army.has(key) and int(counts.get(castle_hub_selected_piece,0)) >= int(limits.get(castle_hub_selected_piece,1)):
+        castle_hub_deploy_status.text = "Больше фигур этого типа поставить нельзя."
         return
-    city_army[key] = city_selected_piece
-    _city_save_state()
-    city_deploy_status.text = "%s размещена на %s." % [city_selected_piece, "abcdefgh".substr(col, 1) + str(8 - row)]
-    _refresh_city_deployment()
+    castle_hub_army[key] = castle_hub_selected_piece
+    _castle_hub_save_state()
+    castle_hub_deploy_status.text = "%s размещена на %s." % [castle_hub_selected_piece, "abcdefgh".substr(col, 1) + str(8 - row)]
+    _refresh_castle_hub_deployment()
 
-func _city_clear_deploy_selection() -> void:
-    city_selected_piece = ""
-    city_deploy_status.text = "Выбор снят. Нажми на занятую клетку, чтобы убрать фигуру."
-    _refresh_city_deployment()
+func _castle_hub_clear_deploy_selection() -> void:
+    castle_hub_selected_piece = ""
+    castle_hub_deploy_status.text = "Выбор снят. Нажми на занятую клетку, чтобы убрать фигуру."
+    _refresh_castle_hub_deployment()
 
-func _refresh_city_deployment() -> void:
-    if city_deploy_panel == null:
+func _refresh_castle_hub_deployment() -> void:
+    if castle_hub_deploy_panel == null:
         return
     var counts := {}
-    for cell_key in city_army.keys():
-        counts[str(city_army[cell_key])] = int(counts.get(str(city_army[cell_key]),0)) + 1
-    for i in range(city_board_cells.size()):
-        var cell := city_board_cells[i] as Button
+    for cell_key in castle_hub_army.keys():
+        counts[str(castle_hub_army[cell_key])] = int(counts.get(str(castle_hub_army[cell_key]),0)) + 1
+    for i in range(castle_hub_board_cells.size()):
+        var cell := castle_hub_board_cells[i] as Button
         var col := i % 8
         var row := int(i / 8)
         var key := "%d,%d" % [col,row]
-        var piece := str(city_army.get(key, ""))
+        var piece := str(castle_hub_army.get(key, ""))
         cell.text = ""
         if piece != "":
             var glyphs := {"Пешка":"♙","Конь":"♘","Слон":"♗","Ладья":"♖","Ферзь":"♕","Король":"♔"}
@@ -292,25 +292,25 @@ func _refresh_city_deployment() -> void:
         else:
             cell.text = "·" if row >= 4 else ""
             cell.add_theme_color_override("font_color", Color(0.45,0.82,0.48))
-    for piece in city_piece_buttons.keys():
-        var button := city_piece_buttons[piece] as Button
-        var tier := mini(int(city_state.get("castle_level",1)), int(_piece_progress_data(str(piece)).get("tier",1)))
+    for piece in castle_hub_piece_buttons.keys():
+        var button := castle_hub_piece_buttons[piece] as Button
+        var tier := mini(int(castle_hub_state.get("castle_level",1)), int(_piece_progress_data(str(piece)).get("tier",1)))
         button.text = "%s\n%d/%d • %d" % [str(piece).to_upper(), int(counts.get(str(piece),0)), int({"Пешка":8,"Конь":2,"Слон":2,"Ладья":2,"Ферзь":1,"Король":1}.get(str(piece),1)), tier]
         button.disabled = tier < 1
 
-func _refresh_city_battle_screen() -> void:
-    if city_battle_panel == null:
+func _refresh_castle_hub_battle_screen() -> void:
+    if castle_hub_battle_panel == null:
         return
-    _city_ensure_state()
-    var level := int(city_state.get("castle_level",1))
-    var energy := int(city_state.get("energy",150))
-    city_energy_label.text = "ЭНЕРГИЯ  %d / 150   •   +150 КАЖДЫЙ ДЕНЬ" % energy
-    city_castle_level_label.text = "ЗАМОК • УРОВЕНЬ %d" % level
-    city_army_power_label.text = "СИЛА АРМИИ  %d   •   ФИГУР: %d" % [_city_army_power(), city_army.size()]
-    var castle := city_battle_panel.find_child("CityCastleButton",true,false) as Button
+    _castle_hub_ensure_state()
+    var level := int(castle_hub_state.get("castle_level",1))
+    var energy := int(castle_hub_state.get("energy",150))
+    castle_hub_energy_label.text = "ЭНЕРГИЯ  %d / 150   •   +150 КАЖДЫЙ ДЕНЬ" % energy
+    castle_hub_castle_level_label.text = "ЗАМОК • УРОВЕНЬ %d" % level
+    castle_hub_army_power_label.text = "СИЛА АРМИИ  %d   •   ФИГУР: %d" % [_castle_hub_army_power(), castle_hub_army.size()]
+    var castle := castle_hub_battle_panel.find_child("CityCastleButton",true,false) as Button
     if castle:
         castle.text = "ЗАМОК %s\nНАЖМИ, ЧТОБЫ РАССТАВИТЬ АРМИЮ" % ["I","II","III","IV","V"][level-1]
-    var upgrade := city_battle_panel.find_child("CityCastleUpgradeButton",true,false) as Button
+    var upgrade := castle_hub_battle_panel.find_child("CityCastleUpgradeButton",true,false) as Button
     if upgrade:
         if level >= 5:
             upgrade.text = "МАКСИМАЛЬНЫЙ УРОВЕНЬ ЗАМКА"
@@ -320,13 +320,13 @@ func _refresh_city_battle_screen() -> void:
             var gold_cost := [1500,3500,7000,14000][level-1]
             upgrade.text = "УЛУЧШИТЬ ЗАМОК ДО %d • %d XP / %d ЗЛОТЫХ" % [level+1,xp_cost,gold_cost]
             upgrade.disabled = false
-    var attack := city_battle_panel.find_child("CityAttackButton",true,false) as Button
+    var attack := castle_hub_battle_panel.find_child("CityAttackButton",true,false) as Button
     if attack:
-        attack.disabled = energy < 10 or city_army.is_empty()
+        attack.disabled = energy < 10 or castle_hub_army.is_empty()
 
-func _upgrade_city_castle() -> void:
-    _city_ensure_state()
-    var level := int(city_state.get("castle_level",1))
+func _upgrade_castle_hub_castle() -> void:
+    _castle_hub_ensure_state()
+    var level := int(castle_hub_state.get("castle_level",1))
     if level >= 5:
         return
     var xp_cost := [500,1200,2500,5000][level-1]
@@ -336,29 +336,29 @@ func _upgrade_city_castle() -> void:
         return
     balances["xp"] = int(balances["xp"]) - xp_cost
     balances["zloty"] = int(balances["zloty"]) - gold_cost
-    city_state["castle_level"] = level + 1
-    _city_save_state()
+    castle_hub_state["castle_level"] = level + 1
+    _castle_hub_save_state()
     _refresh_wallet_labels()
-    _refresh_city_battle_screen()
+    _refresh_castle_hub_battle_screen()
     _show_notice("Замок улучшен до уровня %d. Теперь доступны фигуры соответствующего уровня, если они исследованы." % (level+1))
 
-func _city_attack_pressed() -> void:
-    _city_ensure_state()
-    if int(city_state.get("energy",150)) < 10:
+func _castle_hub_attack_pressed() -> void:
+    _castle_hub_ensure_state()
+    if int(castle_hub_state.get("energy",150)) < 10:
         _show_notice("Недостаточно энергии. Каждый день начисляется 150 энергии.")
         return
-    if city_army.is_empty():
+    if castle_hub_army.is_empty():
         _show_notice("Сначала расставь фигуры на доске обороны.")
         return
     _show_notice("Армия готова. Следующий этап — подключение подбора соперника по силе армии, уровню замка и рейтингу. Энергия спишется только при подтверждённом начале партии.")
 
-func _close_city_battle_screen() -> void:
-    if city_battle_panel:
-        city_battle_panel.visible = false
+func _close_castle_hub_battle_screen() -> void:
+    if castle_hub_battle_panel:
+        castle_hub_battle_panel.visible = false
     if menu_panel:
         menu_panel.visible = true
 '''
-if "func _build_city_battle_screen() -> void:" not in s:
+if "func _build_castle_hub_battle_screen() -> void:" not in s:
     s += "\n" + city_ui + "\n"
 
 # Replace only the permanent figure-research stat with regenerating armor.
