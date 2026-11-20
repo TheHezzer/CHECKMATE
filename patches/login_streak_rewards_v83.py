@@ -27,6 +27,12 @@ if anchor not in s:
 s = s.replace(anchor, anchor + '        login_streak_state = cfg.get_value("daily", "login_streak", login_streak_state)\n', 1)
 
 # Create the login bonus panel with the daily challenges screen.
+# Count the login immediately when the game starts, not only when the player opens the rewards panel.
+ready_anchor = "    _load_economy()\n"
+if ready_anchor not in s:
+    raise SystemExit("Game startup economy-load anchor missing")
+s = s.replace(ready_anchor, ready_anchor + "    _login_streak_register_today()\n", 1)
+
 anchor = "    _build_daily_tasks_screen()\n    _build_onboarding_screen()"
 if anchor not in s:
     raise SystemExit("Daily screen build anchor missing")
