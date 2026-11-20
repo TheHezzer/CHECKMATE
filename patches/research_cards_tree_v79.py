@@ -92,9 +92,11 @@ func _build_piece_progression_panel() -> void:
     progression_next_card.name = "LockedNextResearchCard"
     var next_title := _add_label(progression_next_card, "УРОВЕНЬ 2", Vector2(10, 8), Vector2(230, 32), 18, PALE_GOLD)
     var lock := _add_label(progression_next_card, "🔒", Vector2(10, 48), Vector2(230, 70), 48, Color(0.78,0.70,0.52))
-    lock.name = "NextResearchLock"\n    lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    lock.name = "NextResearchLock"
+    lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     var next_desc := _add_label(progression_next_card, "СЛЕДУЮЩИЙ ПЕРСОНАЖ\nОткроется после полного исследования уровня 1", Vector2(12, 125), Vector2(230, 78), 13, Color(0.83,0.80,0.74))
-    next_desc.name = "NextResearchDescription"\n    next_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    next_desc.name = "NextResearchDescription"
+    next_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     var next_progress := _add_label(progression_next_card, "0 / 15 улучшений", Vector2(12, 205), Vector2(230, 28), 13, PALE_GOLD)
     next_progress.name = "NextResearchProgress"
 
