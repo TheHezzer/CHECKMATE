@@ -232,8 +232,6 @@ jobs:
           python "$project_dir/patches/skip_intro_open_main_menu_v98.py"
           cp patches/fix_main_menu_text_fit_v99.py "$project_dir/patches/fix_main_menu_text_fit_v99.py"
           python "$project_dir/patches/fix_main_menu_text_fit_v99.py"
-          cp patches/fix_preparation_and_standard_start_v101.py "$project_dir/patches/fix_preparation_and_standard_start_v101.py"
-          python "$project_dir/patches/fix_preparation_and_standard_start_v101.py"
           cp patches/fix_queue_and_standard_hud_v101.py "$project_dir/patches/fix_queue_and_standard_hud_v101.py"
           python "$project_dir/patches/fix_queue_and_standard_hud_v101.py"
 
