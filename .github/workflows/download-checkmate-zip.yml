@@ -1,5 +1,6 @@
-name: Build CHECKMATE classic v77 — economy, research and shop
+name: Build CHECKMATE classic v78 — Chess City match rewards
 # v76 randomizes local test colors and adds a manual self-play chess test
+# v78 updates Chess City-only match rewards and economy isolation
 # v77 adds the staged city economy and shop interface
 # v66 profile and admin controls
 # v66 bot test fix
@@ -198,7 +199,7 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v77.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v78.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
           unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v77.zip"
           mkdir -p builds
           cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v77.zip" builds/CHECKMATE_classic_v77.zip
@@ -206,14 +207,14 @@ jobs:
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v77 build"
+          commit_message: "Save CHECKMATE classic v78 build"
           branch: splash-update
           file_pattern: builds/CHECKMATE_classic_v77.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v77
+          name: CHECKMATE-classic-v78
           path: CHECKMATE_classic_v77.zip
           if-no-files-found: error
           compression-level: 0
