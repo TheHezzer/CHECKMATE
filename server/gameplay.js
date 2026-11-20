@@ -133,7 +133,7 @@ function makeInitialBoard(players){
 }
 function isVoteMode(state){return /голос|vote/i.test(String(state?.mode||""));}
 export function createGameState(match){
-  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,abandoned:false,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
+  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,abandoned:false,lastSeenAt:now,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
   const now=Date.now();
   const whiteStart=players.find(p=>p.playerId===match.startingPlayerId&&p.team==="white")||players.find(p=>p.team==="white");
   const blackPlayers=players.filter(p=>p.team==="black");
@@ -214,7 +214,16 @@ function skipTimedPlayer(state,now=Date.now()){
 }
 export function advanceGameClock(match,now=Date.now()){
   const state=match?.game;if(!state||state.status!=="active")return state;
+  for(const player of state.players){
+    if(!player.abandoned && now-Number(player.lastSeenAt||state.createdAt||now)>45_000){
+      player.abandoned=true;
+      player.abandonedAt=now;
+      player.abandonmentReason="connection_lost";
+    }
+  }
   if(state.openingVote){if(now>=state.openingVote.expiresAt)resolveOpeningVote(match,now);return state;}
+  const activePlayer=state.players.find(player=>player.playerId===state.activePlayerId);
+  if(activePlayer?.abandoned) state.playerTurnEndsAt=now;
   const last=Number(state.clockLastTickAt||now),elapsed=Math.max(0,now-last);
   state.clockLastTickAt=now;
   state.teamClocks[state.activeTeam]=Math.max(0,Number(state.teamClocks[state.activeTeam]||0)-elapsed);
