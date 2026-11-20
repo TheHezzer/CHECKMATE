@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createGameState,getGameState,applyGameMove,passGameTurn,sendTeamChat} from "./gameplay.js";
+import {createGameState,getGameState,applyGameMove,passGameTurn,proposeGameMove,castGameVote,sendTeamChat} from "./gameplay.js";
 
 function fixture(){
  const roles=["Ладья","Ладья","Конь","Конь","Слон","Слон","Ферзь","Король"];
@@ -47,4 +47,44 @@ test("team chat is private to the player's team and eliminated players may chat"
  assert.equal(black.chat.length,0);
  match.game.players.find(p=>p.playerId==="white-0").eliminated=true;
  assert.equal(sendTeamChat(match,"white-0","Я наблюдаю").status,201);
+});
+
+test("team voting requires a proposal and a majority before applying the move",()=>{
+ const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const starter=match.game.activePlayerId;
+ const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
+ assert.equal(applyGameMove(match,starter,move).error,"VOTE_REQUIRED");
+ const proposed=proposeGameMove(match,starter,move);
+ assert.equal(proposed.status,200);
+ assert.equal(match.game.board.find(p=>p.ownerPlayerId===starter&&p.kind==="P").row,6);
+ assert.equal(castGameVote(match,"black-0","approve").error,"VOTE_NOT_ALLOWED");
+ assert.equal(castGameVote(match,"white-1","approve").status,200);
+ assert.equal(castGameVote(match,"white-2","approve").status,200);
+ assert.equal(castGameVote(match,"white-3","approve").status,200);
+ const accepted=castGameVote(match,"white-4","approve");
+ assert.equal(accepted.status,200);
+ assert.equal(accepted.vote.decision,"approve");
+ assert.equal(match.game.board.find(p=>p.ownerPlayerId===starter&&p.kind==="P").row,5);
+ assert.equal(match.game.activeTeam,"black");
+ assert.equal(match.game.players.find(p=>p.playerId==="white-1").stats.correctVotes,1);
+});
+test("team vote rejects duplicates and a majority rejection passes the turn to the next teammate",()=>{
+ const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const starter=match.game.activePlayerId;
+ const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
+ proposeGameMove(match,starter,move);
+ assert.equal(castGameVote(match,"white-1","reject").status,200);
+ assert.equal(castGameVote(match,"white-1","reject").error,"ALREADY_VOTED");
+ castGameVote(match,"white-2","reject");
+ castGameVote(match,"white-3","reject");
+ const rejected=castGameVote(match,"white-4","reject");
+ assert.equal(rejected.status,200);
+ assert.equal(rejected.vote.decision,"reject");
+ assert.equal(match.game.board.find(p=>p.ownerPlayerId===starter&&p.kind==="P").row,6);
+ assert.notEqual(match.game.activePlayerId,starter);
+ assert.equal(match.game.players.find(p=>p.playerId==="white-1").stats.correctVotes,1);
+});
+test("team voting is unavailable in the standard classic mode",()=>{
+ const f=fixture();f.mode="classic";const match={players:f.players,game:createGameState(f)};
+ assert.equal(proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5}).error,"VOTING_MODE_REQUIRED");
 });
