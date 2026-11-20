@@ -61,6 +61,7 @@ test("team voting requires a proposal and a majority before applying the move",(
  assert.equal(castGameVote(match,"white-1","approve").status,200);
  assert.equal(castGameVote(match,"white-2","approve").status,200);
  assert.equal(castGameVote(match,"white-3","approve").status,200);
+ assert.equal(castGameVote(match,starter,"approve").status,200);
  const accepted=castGameVote(match,"white-4","approve");
  assert.equal(accepted.status,200);
  assert.equal(accepted.vote.decision,"approve");
@@ -77,6 +78,7 @@ test("team vote rejects duplicates and a majority rejection passes the turn to t
  assert.equal(castGameVote(match,"white-1","reject").error,"ALREADY_VOTED");
  castGameVote(match,"white-2","reject");
  castGameVote(match,"white-3","reject");
+ castGameVote(match,starter,"reject");
  const rejected=castGameVote(match,"white-4","reject");
  assert.equal(rejected.status,200);
  assert.equal(rejected.vote.decision,"reject");
