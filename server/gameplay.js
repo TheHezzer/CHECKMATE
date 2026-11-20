@@ -134,14 +134,17 @@ function makeInitialBoard(players){
 function isVoteMode(state){return /голос|vote/i.test(String(state?.mode||""));}
 export function createGameState(match){
   const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
+  const now=Date.now();
   const whiteStart=players.find(p=>p.playerId===match.startingPlayerId&&p.team==="white")||players.find(p=>p.team==="white");
   const blackPlayers=players.filter(p=>p.team==="black");
   const blackStart=blackPlayers.length?blackPlayers[crypto.randomInt(0,blackPlayers.length)]:null;
   return {
-    matchId:match.id,mode:match.mode,createdAt:Date.now(),status:"active",result:null,winnerTeam:null,
-    players,board:makeInitialBoard(players),activeTeam:"white",activePlayerId:whiteStart?.playerId||"",
-    startingPlayerId:whiteStart?.playerId||"",nextSlot:{white:whiteStart?(whiteStart.slot+1)%8:0,black:blackStart?blackStart.slot:0},
-    turn:1,moveNumber:1,halfmoveClock:0,history:[],chat:[],passedThisTurn:[],pendingVote:null,updatedAt:Date.now()
+    matchId:match.id,mode:match.mode,createdAt:now,status:"active",result:null,winnerTeam:null,
+    players,board:makeInitialBoard(players),activeTeam:"white",activePlayerId:"",
+    startingPlayerId:whiteStart?.playerId||"",nextSlot:{white:whiteStart?whiteStart.slot:0,black:blackStart?blackStart.slot:0},
+    teamClocks:{white:TEAM_CLOCK_MS,black:TEAM_CLOCK_MS},clockLastTickAt:now,playerTurnStartedAt:0,playerTurnEndsAt:0,
+    openingVote:{createdAt:now,expiresAt:now+OPENING_VOTE_MS,defaultPlayerId:whiteStart?.playerId||"",votes:{}},
+    turn:1,moveNumber:1,halfmoveClock:0,history:[],chat:[],passedThisTurn:[],pendingVote:null,updatedAt:now
   };
 }
 function sanitizeState(state,viewerId){
@@ -150,6 +153,9 @@ function sanitizeState(state,viewerId){
     matchId:state.matchId,status:state.status,result:state.result,winnerTeam:state.winnerTeam,
     activeTeam:state.activeTeam,activePlayerId:state.activePlayerId,startingPlayerId:state.startingPlayerId,
     turn:state.turn,moveNumber:state.moveNumber,board:clone(state.board),
+    teamClocks:{white:Math.max(0,Math.round(state.teamClocks.white)),black:Math.max(0,Math.round(state.teamClocks.black))},
+    activeTurnRemainingMs:state.openingVote?0:Math.max(0,(state.playerTurnEndsAt||0)-Date.now()),
+    openingVote:state.openingVote?{createdAt:state.openingVote.createdAt,expiresAt:state.openingVote.expiresAt,remainingMs:Math.max(0,state.openingVote.expiresAt-Date.now()),voteCount:Object.keys(state.openingVote.votes||{}).length,viewerVote:state.openingVote.votes[viewerId]||null,eligiblePlayers:state.players.filter(p=>p.team==="white").map(p=>({playerId:p.playerId,name:p.name,slot:p.slot}))}:null,
     players:state.players.map(p=>({...p,stats:{...(p.stats||{})}})),viewer:{playerId:viewerId,team:viewer?.team||null,eliminated:viewer?.eliminated??true},
     chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),pendingVote:state.pendingVote&&state.pendingVote.team===viewer?.team?{proposerId:state.pendingVote.proposerId,team:state.pendingVote.team,move:clone(state.pendingVote.move),votes:Object.values(state.pendingVote.votes),approveCount:voteCounts(state.pendingVote).approveCount,rejectCount:voteCounts(state.pendingVote).rejectCount,requiredVotes:state.pendingVote.requiredVotes,createdAt:state.pendingVote.createdAt,discussionEndsAt:state.pendingVote.discussionEndsAt,expiresAt:state.pendingVote.expiresAt,remainingMs:Math.max(0,state.pendingVote.expiresAt-Date.now()),viewerVote:state.pendingVote.votes[viewerId]||null}:null,lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
   };
