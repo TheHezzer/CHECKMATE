@@ -3,7 +3,7 @@ name: Build CHECKMATE classic v85 — Chess City castle and deployment
 # v78 updates Chess City-only match rewards and economy isolation
 # v79 redesigns figure research as connected current/locked level cards
 # v85 adds Chess City castle hub, persistent daily energy and free-form army deployment
-# v85.2 uses isolated names for the new castle hub and deployment UI
+# v85.3 preserves the existing city menu entry-point name
 # v84 adds a 30-day seasonal battle pass with free and premium reward tracks
 # v83 adds a persistent seven-day login streak with escalating daily rewards
 # v82 makes the next-tier card actionable and completes the five-tier unlock flow
