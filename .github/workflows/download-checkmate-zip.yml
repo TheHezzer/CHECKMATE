@@ -1,4 +1,5 @@
 name: Build CHECKMATE classic v57 — UI polish and piece selection
+# v57 trigger refresh
 # Rebuild after correcting the v46 patch path.
 
 concurrency:
