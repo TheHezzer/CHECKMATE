@@ -13,3 +13,5 @@ for old, new in repls:
     s = s.replace(old, new, 1)
 p.write_text(s, encoding="utf-8")
 print("v111 research card typography compacted")
+
+# Rebuild after correcting the v111 output archive path.
