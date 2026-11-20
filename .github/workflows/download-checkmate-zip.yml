@@ -188,8 +188,8 @@ jobs:
           python "$project_dir/patches/economy_shop_research_v77.py"
           cp patches/research_cards_tree_v79.py "$project_dir/patches/research_cards_tree_v79.py"
           python "$project_dir/patches/research_cards_tree_v79.py"
-          cp patches/unlockable_research_tiers_v81.py "$project_dir/patches/unlockable_research_tiers_v81.py"
-          python "$project_dir/patches/unlockable_research_tiers_v81.py"
+          cp patches/unlockable_research_tiers_v80.py "$project_dir/patches/unlockable_research_tiers_v80.py"
+          python "$project_dir/patches/unlockable_research_tiers_v80.py"
           cp patches/research_progress_growth_v81.py "$project_dir/patches/research_progress_growth_v81.py"
           python "$project_dir/patches/research_progress_growth_v81.py"
 
