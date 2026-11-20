@@ -152,3 +152,5 @@ if "func _developer_test_self_play() -> void:" not in s:
 
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v76: randomized local player color and added manual self-play test mode.")
+
+# Build trigger: v76 includes random side assignment and self-play QA mode.
