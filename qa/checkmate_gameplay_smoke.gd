@@ -106,6 +106,58 @@ func _run() -> void:
     await create_timer(0.60).timeout
     _check(not game.last_move.is_empty() and game.current_team == "black", "bot generates and executes a legal opening move")
 
+    # Full standard 1v1 game: the human controls all moves for their color,
+    # while the bot controls the opposite color until the game is finished.
+    game.local_user_team = "white"
+    game.local_user_slot = 1
+    game._start_game("Стандартные шахматы")
+    game.standard_chess_mode_active = true
+    game.local_bot_test_active = true
+    game.team_next_player = {"white": 1, "black": 1}
+    game.active_teammate = 1
+    if game.local_clock_timer:
+        game.local_clock_timer.stop()
+    var human_moves := 0
+    var bot_moves := 0
+    var full_game_plies := 0
+    while not game.game_over and full_game_plies < 160:
+        if game.current_team == game.local_user_team and game.active_teammate == game.local_user_slot:
+            var chosen_move: Dictionary = {}
+            for piece in game.game_piece_nodes:
+                if not is_instance_valid(piece) or str(piece.get_meta("team")) != game.current_team:
+                    continue
+                var fc := int(piece.get_meta("col"))
+                var fr := int(piece.get_meta("row"))
+                var kind := str(piece.get_meta("kind"))
+                for tc in range(8):
+                    for tr in range(8):
+                        if fc == tc and fr == tr:
+                            continue
+                        var target := game._get_game_piece_at(tc, tr)
+                        if target != null and str(target.get_meta("team")) == game.current_team:
+                            continue
+                        if game._is_valid_classic_move(kind, game.current_team, fc, fr, tc, tr, target) and game._move_keeps_king_safe(piece, tc, tr, target):
+                            chosen_move = {"fc":fc,"fr":fr,"tc":tc,"tr":tr}
+                            break
+                    if not chosen_move.is_empty():
+                        break
+                if not chosen_move.is_empty():
+                    break
+            if chosen_move.is_empty():
+                break
+            game._process_classic_move(int(chosen_move["fc"]), int(chosen_move["fr"]), int(chosen_move["tc"]), int(chosen_move["tr"]))
+            human_moves += 1
+        else:
+            game._make_bot_move()
+            await create_timer(0.52).timeout
+            bot_moves += 1
+        full_game_plies += 1
+        await process_frame
+    _check(human_moves >= 5, "human controls multiple moves throughout the full standard match")
+    _check(bot_moves >= 5, "bot replies repeatedly throughout the full standard match")
+    _check(game.game_over and game.match_result_panel.visible, "full standard match reaches a terminal result screen")
+    _check(full_game_plies < 160, "full standard match ends before the safety move limit")
+
     # UI navigation is tested by invoking the same callbacks connected to buttons.
     game._return_to_menu()
     _check(game.preview_pawn.visible, "menu preview pawn returns after leaving a match")
