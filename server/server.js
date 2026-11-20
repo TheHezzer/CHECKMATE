@@ -281,7 +281,7 @@ export function createMatchmakingServer(options = {}) {
         if(req.method==="GET"&&action==="state"){
           const state=getGameState(match,playerId);
           if(state&&match.game.status==="finished"&&!match.rewardsPaid){
-            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam);
+            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam,match.mode);
             match.rewardsPaid=true;
           }
           if(state&&match.rewardResults) state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
@@ -300,7 +300,7 @@ export function createMatchmakingServer(options = {}) {
         if(action==="vote"){
           const result=castGameVote(match,playerId,body.vote);
           if(match.game.status==="finished"&&!match.rewardsPaid){
-            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam);
+            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam,match.mode);
             match.rewardsPaid=true;
           }
           if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
@@ -309,7 +309,7 @@ export function createMatchmakingServer(options = {}) {
         if(action==="move"){
           const result=applyGameMove(match,playerId,body);
           if(result.status===200&&match.game.status==="finished"&&!match.rewardsPaid){
-            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam);
+            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam,match.mode);
             match.rewardsPaid=true;
           }
           if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
