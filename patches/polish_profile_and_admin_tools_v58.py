@@ -196,8 +196,8 @@ rep('''    developer_test_menu.visible = false
     _start_game(selected_mode)
     status_label.text = "ТЕСТОВЫЙ РЕЖИМ • ЛОКАЛЬНАЯ ПАРТИЯ"''','''    developer_test_menu.visible = false
     if menu_panel: menu_panel.visible = false
-    _start_game(selected_mode)
-    status_label.text = "ПРОВЕРКА • ЛОКАЛЬНАЯ ПАРТИЯ С БОТАМИ"''',"bot test button action")
+    if online_panel: online_panel.visible = true
+    _start_local_bot_queue()''',"bot test button action")
 rep('''    if menu_panel:
         menu_panel.visible = true
     _show_notice("Вы вышли из тестового режима.")''','''    if menu_panel:
