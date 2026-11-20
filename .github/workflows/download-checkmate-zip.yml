@@ -110,6 +110,7 @@ jobs:
           cp patches/add_match_history_v44.py "$project_dir/patches/add_match_history_v44.py"
           python "$project_dir/patches/add_match_history_v44.py"
           cp patches/add_checkmate_v45.py "$project_dir/patches/add_checkmate_v45.py"
+          for i in {1..6}; do cp "patches/v45_payload_${i}.b64" "$project_dir/patches/v45_payload_${i}.b64"; done
           python "$project_dir/patches/add_checkmate_v45.py"
 
           GODOT_VERSION="4.4.1"
