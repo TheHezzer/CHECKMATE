@@ -225,6 +225,29 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return { status: 200, body: { city: cityPayload(account), purchasedSkin: skin } };
   }
 
+  async function reserveClassicMatchPiece(token, piece) {
+    await load();
+    const account = verifyToken(token);
+    if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
+    const costs = { "Пешка": 0, "Конь": 180, "Слон": 220, "Ладья": 260, "Ферзь": 520, "Король": 0 };
+    if (!Object.hasOwn(costs, piece)) return { status: 400, body: { error: "UNKNOWN_PIECE" } };
+    const city = ensureCity(account), cost = costs[piece];
+    if (city.wallet.zloty < cost) return { status: 409, body: { error: "NOT_ENOUGH_ZLOTY", required: cost, available: city.wallet.zloty } };
+    city.wallet.zloty -= cost;
+    await persist();
+    return { status: 200, body: { cost, wallet: { ...city.wallet } } };
+  }
+
+  async function refundClassicMatchPieceById(playerId, cost) {
+    await load();
+    const account = accounts.find(item => item.id === playerId);
+    if (!account) return false;
+    const city = ensureCity(account);
+    city.wallet.zloty += Math.max(0, Number(cost) || 0);
+    await persist();
+    return true;
+  }
+
   async function awardMatchById(players, winnerTeam) {
     await load();
     const results = [];
@@ -256,5 +279,5 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return rows;
   }
 
-  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, awardMatchById };
+  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, awardMatchById, reserveClassicMatchPiece, refundClassicMatchPieceById };
 }
