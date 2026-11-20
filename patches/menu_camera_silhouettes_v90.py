@@ -15,7 +15,8 @@ if block_start < 0:
 line_end = s.find("\n", idx)
 if line_end < 0:
     line_end = len(s)
-new_block = """    # Orbit the camera around the stationary figure.
+new_block = """    var delta_y := pointer_y - last_pointer_y
+    # Orbit the camera around the stationary figure.
     if is_instance_valid(preview_camera_pivot):
         preview_camera_pivot.rotate_y(deg_to_rad(delta_x * 0.55))
         preview_camera_pitch = clampf(preview_camera_pitch + deg_to_rad(delta_y * 0.35), deg_to_rad(-24.0), deg_to_rad(24.0))
