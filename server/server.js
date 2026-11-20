@@ -172,6 +172,50 @@ function tryMatch(ticket, now=Date.now()) {
   return match;
 }
 
+async function deliverMatchResults(match, accounts) {
+  if (!match?.game || match.game.status !== "finished" || match.resultsDelivered) return;
+  if (!match.rewardsPaid) {
+    match.rewardResults = await accounts.awardMatchById(match.game.players, match.game.winnerTeam, match.mode);
+    match.rewardsPaid = true;
+  }
+  const rewardByPlayer = new Map((match.rewardResults || []).map(item => [item.playerId, item]));
+  const completedAt = new Date().toISOString();
+  for (const player of match.game.players) {
+    const reward = rewardByPlayer.get(player.playerId) || { xp: 0, zloty: 0 };
+    const won = match.game.winnerTeam === player.team;
+    const draw = match.game.winnerTeam === "draw";
+    const outcome = draw ? "НИЧЬЯ" : won ? "ПОБЕДА" : "ПОРАЖЕНИЕ";
+    const abandonedMessage = player.abandoned
+      ? " Вы покинули незавершённую партию. Это запрещено правилами CHECKMATE; выход зафиксирован, а результат матча сохранён."
+      : "";
+    await accounts.addNotificationById(player.playerId, {
+      id: "match-result-" + match.id,
+      type: "match_result",
+      title: "Партия завершена: " + outcome,
+      message: "Режим: " + match.mode + ". Итог: " + (match.game.result || "завершена") +
+        ". Награда: +" + Number(reward.zloty || 0) + " злотых, +" + Number(reward.xp || 0) + " XP." + abandonedMessage,
+      createdAt: completedAt,
+      data: {
+        matchId: match.id,
+        mode: match.mode,
+        result: match.game.result,
+        winnerTeam: match.game.winnerTeam,
+        playerTeam: player.team,
+        won,
+        abandoned: !!player.abandoned,
+        abandonedAt: player.abandonedAt || null,
+        zloty: Number(reward.zloty || 0),
+        xp: Number(reward.xp || 0),
+        stats: player.stats || {},
+        teamPlayers: match.game.players.filter(item => item.team === player.team).map(item => ({
+          playerId: item.playerId, name: item.name, abandoned: !!item.abandoned, stats: item.stats || {}
+        }))
+      }
+    });
+  }
+  match.resultsDelivered = true;
+}
+
 export function createMatchmakingServer(options = {}) {
   const accounts = createAccountService(options);
   return http.createServer(async (req, res) => {
@@ -200,6 +244,20 @@ export function createMatchmakingServer(options = {}) {
         const authorization = String(req.headers.authorization || "");
         const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
         const result = await accounts.me(token);
+        return send(res, result.status, result.body);
+      }
+
+      if (req.method === "GET" && url.pathname === "/notifications") {
+        const authorization = String(req.headers.authorization || "");
+        const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+        const result = await accounts.getNotifications(token, Number(url.searchParams.get("limit") || 30));
+        return send(res, result.status, result.body);
+      }
+      if (req.method === "POST" && url.pathname === "/notifications/read") {
+        const authorization = String(req.headers.authorization || "");
+        const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+        const body = await readJson(req);
+        const result = await accounts.markNotificationsRead(token, body.ids || []);
         return send(res, result.status, result.body);
       }
 
@@ -268,6 +326,40 @@ export function createMatchmakingServer(options = {}) {
         return send(res,201,{ticket:ticketId,status,pollAfterMs:1500,rating,initialRatingGap:INITIAL_RATING_GAP,maxRatingGap:MAX_RATING_GAP,...queuePreview(ticket)});
       }
 
+      const leaveRoute=url.pathname.match(/^\/matches\/([0-9a-f-]+)\/leave$/);
+      if(req.method==="POST"&&leaveRoute){
+        const match=matches.get(leaveRoute[1]);
+        if(!match)return send(res,404,{error:"MATCH_NOT_FOUND"});
+        const supplied=String(req.headers["x-player-session"]||"");
+        const auth=String(req.headers.authorization||"");
+        const sessionToken=supplied||(auth.startsWith("Bearer ")?auth.slice(7):"");
+        const entry=[...match.sessionTokens.entries()].find(([,token])=>token===sessionToken);
+        if(!entry)return send(res,401,{error:"INVALID_MATCH_SESSION"});
+        const player=match.game.players.find(item=>item.playerId===entry[0]);
+        if(!player)return send(res,404,{error:"PLAYER_NOT_IN_MATCH"});
+        if(match.game.status!=="active")return send(res,409,{error:"MATCH_NOT_ACTIVE",state:getGameState(match,player.playerId)});
+        if(!player.abandoned){
+          player.abandoned=true;
+          player.abandonedAt=Date.now();
+          player.abandonmentWarning="Выход из незавершённой партии запрещён правилами CHECKMATE.";
+          match.game.history.push({type:"player_left",playerId:player.playerId,team:player.team,at:player.abandonedAt});
+          const remaining=match.game.players.filter(item=>item.team===player.team&&!item.eliminated&&!item.abandoned);
+          if(remaining.length===0){
+            match.game.status="finished";
+            match.game.result="abandonment";
+            match.game.winnerTeam=player.team==="white"?"black":"white";
+            match.game.activePlayerId="";
+            match.game.updatedAt=Date.now();
+          }else if(match.game.activePlayerId===player.playerId){
+            match.game.playerTurnEndsAt=Date.now();
+            const { advanceGameClock } = await import("./gameplay.js");
+            advanceGameClock(match,Date.now());
+          }
+        }
+        await deliverMatchResults(match,accounts);
+        return send(res,200,{left:true,abandoned:true,warning:player.abandonmentWarning,matchStatus:match.game.status,notificationWillBeAvailable:true});
+      }
+
       const gameplayRoute=url.pathname.match(/^\/matches\/([0-9a-f-]+)\/(state|move|pass|chat|propose|vote|opening-vote)$/);
       if(gameplayRoute){
         const match=matches.get(gameplayRoute[1]);
@@ -280,10 +372,7 @@ export function createMatchmakingServer(options = {}) {
         const playerId=entry[0],action=gameplayRoute[2];
         if(req.method==="GET"&&action==="state"){
           const state=getGameState(match,playerId);
-          if(state&&match.game.status==="finished"&&!match.rewardsPaid){
-            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam,match.mode);
-            match.rewardsPaid=true;
-          }
+          await deliverMatchResults(match,accounts);
           if(state&&match.rewardResults) state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
           return state?send(res,200,state):send(res,404,{error:"MATCH_NOT_FOUND"});
         }
@@ -299,24 +388,20 @@ export function createMatchmakingServer(options = {}) {
         }
         if(action==="vote"){
           const result=castGameVote(match,playerId,body.vote);
-          if(match.game.status==="finished"&&!match.rewardsPaid){
-            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam,match.mode);
-            match.rewardsPaid=true;
-          }
+          await deliverMatchResults(match,accounts);
           if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="move"){
           const result=applyGameMove(match,playerId,body);
-          if(result.status===200&&match.game.status==="finished"&&!match.rewardsPaid){
-            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam,match.mode);
-            match.rewardsPaid=true;
-          }
+          await deliverMatchResults(match,accounts);
           if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="pass"){
           const result=passGameTurn(match,playerId);
+          await deliverMatchResults(match,accounts);
+          if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="chat"){
