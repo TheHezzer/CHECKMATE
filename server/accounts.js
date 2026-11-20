@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { calculateMatchReward } from "./rewards.js";
 
 const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 const CITY_PIECES = {
@@ -229,7 +230,7 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     await load();
     const account = verifyToken(token);
     if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
-    const costs = { "Пешка": 0, "Конь": 180, "Слон": 220, "Ладья": 260, "Ферзь": 520, "Король": 0 };
+    const costs = { "Пешка": 0, "Конь": 0, "Слон": 0, "Ладья": 0, "Ферзь": 0, "Король": 0 };
     if (!Object.hasOwn(costs, piece)) return { status: 400, body: { error: "UNKNOWN_PIECE" } };
     const city = ensureCity(account), cost = costs[piece];
     if (city.wallet.zloty < cost) return { status: 409, body: { error: "NOT_ENOUGH_ZLOTY", required: cost, available: city.wallet.zloty } };
@@ -256,15 +257,16 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
       if (!account) continue;
       const city = ensureCity(account);
       const won = winnerTeam === player.team;
-      const xp = won ? 100 : 50;
-      const zloty = won ? 200 : 100;
+      const reward = calculateMatchReward({ winnerTeam, playerTeam: player.team, stats: player.stats || {} });
+      const xp = reward.xp;
+      const zloty = reward.zloty;
       city.wallet.xp += xp;
       city.wallet.zloty += zloty;
       account.matches = (account.matches || 0) + 1;
       if (winnerTeam === "draw") account.draws = (account.draws || 0) + 1;
       else if (won) account.wins = (account.wins || 0) + 1;
       else account.losses = (account.losses || 0) + 1;
-      results.push({ playerId: account.id, xp, zloty, won, city: cityPayload(account) });
+      results.push({ playerId: account.id, xp, zloty, won, result: reward.result, accuracy: reward.accuracy, moves: reward.moves, captures: reward.captures, checks: reward.checks, voteAccuracy: reward.voteAccuracy, breakdown: reward.breakdown, city: cityPayload(account) });
     }
     if (results.length) await persist();
     return results;
