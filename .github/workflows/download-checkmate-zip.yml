@@ -18,7 +18,7 @@ name: Build CHECKMATE classic v97 — enlarged upright menu figure
 # Rebuild after correcting the v46 patch path.
 
 concurrency:
-  group: checkmate-build-${{ github.ref }}
+  group: checkmate-visual-review-${{ github.ref }}
   cancel-in-progress: true
 
 on:
