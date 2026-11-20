@@ -250,6 +250,10 @@ export function getGameState(match,viewerId){
 }
 export function applyGameMove(match,playerId,move,approvedByVote=false){
   const state=match?.game;if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  advanceGameClock(match);
+  if(state.status!=="active")return{status:409,error:"MATCH_TIME_EXPIRED",state:sanitizeState(state,playerId)};
+  if(state.openingVote)return{status:409,error:"OPENING_VOTE_ACTIVE",state:sanitizeState(state,playerId)};
+  if(state.activePlayerId!==playerId)return{status:403,error:"NOT_YOUR_TURN"};
   if(isVoteMode(state)&&!approvedByVote)return{status:403,error:"VOTE_REQUIRED"};
   if(state.pendingVote&&!approvedByVote)return{status:409,error:"VOTE_IN_PROGRESS"};
   if(approvedByVote)state.pendingVote=null;
@@ -302,6 +306,9 @@ export function applyGameMove(match,playerId,move,approvedByVote=false){
 }
 export function passGameTurn(match,playerId){
   const state=match?.game;if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  advanceGameClock(match);
+  if(state.status!=="active")return{status:409,error:"MATCH_TIME_EXPIRED",state:sanitizeState(state,playerId)};
+  if(state.openingVote)return{status:409,error:"OPENING_VOTE_ACTIVE",state:sanitizeState(state,playerId)};
   if(state.pendingVote)return{status:409,error:"VOTE_IN_PROGRESS"};
   if(state.activePlayerId!==playerId)return{status:403,error:"NOT_YOUR_TURN"};
   const player=state.players.find(p=>p.playerId===playerId);
@@ -312,7 +319,7 @@ export function passGameTurn(match,playerId){
   const eligible=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated&&!state.passedThisTurn.includes(p.playerId)).sort((a,b)=>a.slot-b.slot);
   if(eligible.length){
     const next=eligible.find(p=>p.slot>player.slot)||eligible[0];
-    state.activePlayerId=next.playerId;
+    state.activePlayerId=next.playerId;state.playerTurnStartedAt=Date.now();state.playerTurnEndsAt=Date.now()+PLAYER_TURN_MS;
   }else{
     finishTurn(state,state.activeTeam,player.slot);
   }
@@ -323,6 +330,9 @@ export function passGameTurn(match,playerId){
 export function proposeGameMove(match,playerId,move){
   const state=match?.game;
   if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  advanceGameClock(match);
+  if(state.status!=="active")return{status:409,error:"MATCH_TIME_EXPIRED",state:sanitizeState(state,playerId)};
+  if(state.openingVote)return{status:409,error:"OPENING_VOTE_ACTIVE",state:sanitizeState(state,playerId)};
   if(!isVoteMode(state))return{status:409,error:"VOTING_MODE_REQUIRED"};
   if(state.pendingVote)return{status:409,error:"VOTE_IN_PROGRESS"};
   if(state.activePlayerId!==playerId)return{status:403,error:"NOT_YOUR_TURN"};
