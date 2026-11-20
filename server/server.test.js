@@ -86,17 +86,20 @@ test("Chess City skins remain locked until purchased with XP and zloty",async()=
 
 test("matched players receive private session tokens and can use the authoritative match API",async()=>withServer(async base=>{
  const roles=["Ладья","Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
- const tickets=[];
- for(let i=0;i<16;i++)tickets.push(await queue(base,"live"+i,1000,roles[i]));
- const firstTicket=tickets[0].data.ticket;
+ const ticketsByPlayer=new Map();
+ for(let i=0;i<16;i++){
+   const playerId="live"+i;
+   const result=await queue(base,playerId,1000,roles[i]);
+   ticketsByPlayer.set(playerId,result.data.ticket);
+ }
+ const firstTicket=ticketsByPlayer.get("live0");
  const matched=await fetch(base+"/matchmaking/queue/"+firstTicket).then(r=>r.json());
  assert.equal(matched.status,"matched");
  assert.ok(matched.playerSessionToken);
- const startTicket=tickets.find(x=>x.data.ticket===firstTicket) || tickets[0];
- const roster=matched.players;
- const starter=roster.find(p=>p.playerId===matched.startingPlayerId);
- const starterIndex=Number(starter.playerId.replace("live",""));
- const starterTicket=tickets[starterIndex].data.ticket;
+ const starter=matched.players.find(p=>p.playerId===matched.startingPlayerId);
+ assert.ok(starter);
+ const starterTicket=ticketsByPlayer.get(starter.playerId);
+ assert.ok(starterTicket);
  const starterSession=await fetch(base+"/matchmaking/queue/"+starterTicket).then(r=>r.json());
  assert.ok(starterSession.playerSessionToken);
  const stateResponse=await fetch(base+"/matches/"+matched.matchId+"/state",{headers:{"x-player-session":starterSession.playerSessionToken}});
