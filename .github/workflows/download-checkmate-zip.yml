@@ -1,5 +1,5 @@
-name: Build CHECKMATE classic v92 — all modes board and self-play
-# v92 enlarges the central figure and left cards, and lowers figure selection buttons
+name: Build CHECKMATE classic v93 — all modes board and self-play
+# v93 enlarges the central figure and left cards, and lowers figure selection buttons
 # v76 randomizes local test colors and adds a manual self-play chess test
 # v78 updates Chess City-only match rewards and economy isolation
 # v79 redesigns figure research as connected current/locked level cards
@@ -217,8 +217,10 @@ jobs:
           python "$project_dir/patches/fix_gambit_store_layout_v89.py"
           cp patches/menu_camera_silhouettes_v90.py "$project_dir/patches/menu_camera_silhouettes_v90.py"
           python "$project_dir/patches/menu_camera_silhouettes_v90.py"
-          cp patches/fix_all_modes_board_and_self_play_v92.py "$project_dir/patches/fix_all_modes_board_and_self_play_v92.py"
-          python "$project_dir/patches/fix_all_modes_board_and_self_play_v92.py"
+          cp patches/main_menu_scale_buttons_v91.py "$project_dir/patches/main_menu_scale_buttons_v91.py"
+          python "$project_dir/patches/main_menu_scale_buttons_v91.py"
+          cp patches/fix_all_modes_board_and_self_play_v93.py "$project_dir/patches/fix_all_modes_board_and_self_play_v93.py"
+          python "$project_dir/patches/fix_all_modes_board_and_self_play_v93.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -236,23 +238,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v92.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v92.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v93.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v93.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v92.zip" builds/CHECKMATE_classic_v92.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v93.zip" builds/CHECKMATE_classic_v93.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v92 build"
+          commit_message: "Save CHECKMATE classic v93 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v92.zip
+          file_pattern: builds/CHECKMATE_classic_v93.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v92
-          path: CHECKMATE_classic_v92.zip
+          name: CHECKMATE-classic-v93
+          path: CHECKMATE_classic_v93.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
