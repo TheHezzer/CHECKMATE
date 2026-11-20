@@ -89,7 +89,7 @@ function activePlayerFor(state,team,startAfter=-1){
   if(!teamPlayers.length)return null;
   for(let step=1;step<=8;step++){
     const slot=(startAfter+step+8)%8;
-    const player=teamPlayers.find(p=>p.slot===slot&&!p.eliminated);
+    const player=teamPlayers.find(p=>p.slot===slot&&!p.eliminated&&!p.abandoned);
     if(player)return player;
   }
   return null;
@@ -133,7 +133,7 @@ function makeInitialBoard(players){
 }
 function isVoteMode(state){return /голос|vote/i.test(String(state?.mode||""));}
 export function createGameState(match){
-  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
+  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,abandoned:false,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
   const now=Date.now();
   const whiteStart=players.find(p=>p.playerId===match.startingPlayerId&&p.team==="white")||players.find(p=>p.team==="white");
   const blackPlayers=players.filter(p=>p.team==="black");
@@ -206,7 +206,7 @@ function skipTimedPlayer(state,now=Date.now()){
   const current=state.players.find(p=>p.playerId===state.activePlayerId);
   if(!current){state.status="finished";state.winnerTeam=state.activeTeam==="white"?"black":"white";state.result="timeout";return;}
   state.passedThisTurn.push(current.playerId);
-  const eligible=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated&&!state.passedThisTurn.includes(p.playerId)).sort((a,b)=>a.slot-b.slot);
+  const eligible=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated&&!p.abandoned&&!state.passedThisTurn.includes(p.playerId)).sort((a,b)=>a.slot-b.slot);
   const next=eligible.find(p=>p.slot>current.slot)||eligible[0];
   if(next){state.activePlayerId=next.playerId;state.playerTurnStartedAt=now;state.playerTurnEndsAt=now+PLAYER_TURN_MS;}
   else finishTurn(state,state.activeTeam,current.slot,now);
@@ -316,7 +316,7 @@ export function passGameTurn(match,playerId){
   state.passedThisTurn.push(playerId);
   const passingPlayer=state.players.find(p=>p.playerId===playerId);
   if(passingPlayer){passingPlayer.stats=passingPlayer.stats||{};passingPlayer.stats.passes=(passingPlayer.stats.passes||0)+1;}
-  const eligible=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated&&!state.passedThisTurn.includes(p.playerId)).sort((a,b)=>a.slot-b.slot);
+  const eligible=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated&&!p.abandoned&&!state.passedThisTurn.includes(p.playerId)).sort((a,b)=>a.slot-b.slot);
   if(eligible.length){
     const next=eligible.find(p=>p.slot>player.slot)||eligible[0];
     state.activePlayerId=next.playerId;state.playerTurnStartedAt=Date.now();state.playerTurnEndsAt=Date.now()+PLAYER_TURN_MS;
