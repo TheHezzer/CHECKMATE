@@ -132,8 +132,10 @@ test("Classic queue charges the consumable pawn-plus-knight bundle and refunds i
 }));
 test("Classic entry bundle prices are consistent for every second-piece role",async()=>withServer(async base=>{
  const roles={"Конь":30,"Слон":35,"Ладья":40,"Король":45,"Ферзь":55};
+ let index=0;
  for(const [piece,cost] of Object.entries(roles)){
-   const name="price_"+piece.toLowerCase();
+   const name="pricebuyer"+index;
+   index+=1;
    const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:name,password:"securepass123"})}).then(r=>r.json());
    const headers={"content-type":"application/json","authorization":"Bearer "+registered.token};
    const queued=await fetch(base+"/matchmaking/queue",{method:"POST",headers,body:JSON.stringify({piece,mode:"price_"+name,rating:1000})}).then(r=>r.json());
