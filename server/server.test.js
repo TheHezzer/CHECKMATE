@@ -19,6 +19,8 @@ test("classic matchmaking creates 8v8 teams with a pawn and selected second piec
  const white=s.players.filter(p=>p.team==="white"),black=s.players.filter(p=>p.team==="black");
  assert.equal(white.length,8);assert.equal(black.length,8);
  assert.equal(new Set(s.players.map(p=>p.playerId)).size,16);
+ assert.equal(s.startingTeam,"white");
+ assert.ok(s.players.some(p=>p.playerId===s.startingPlayerId&&p.team==="white"));
  for(const player of s.players){
    assert.deepEqual(player.pieces,["Пешка",player.secondPiece]);
    assert.equal(player.piece,player.secondPiece);
