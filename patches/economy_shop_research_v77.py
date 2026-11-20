@@ -35,7 +35,7 @@ new_cost = '''func _piece_upgrade_cost(stat: String, rank: int) -> Dictionary:
     var tier := 1
     if selected_piece >= 0 and selected_piece < PIECES.size():
         tier = int(_piece_progress_data(str(PIECES[selected_piece])).get("tier", 1))
-    var tier_multiplier := [1.0, 1.5, 2.2, 3.2, 4.5][clampi(tier - 1, 0, 4)]
+    var tier_multiplier: float = [1.0, 1.5, 2.2, 3.2, 4.5][clampi(tier - 1, 0, 4)]
     var stat_multiplier := 1.0
     if stat == "shield":
         stat_multiplier = 0.9
@@ -48,11 +48,11 @@ new_cost = '''func _piece_upgrade_cost(stat: String, rank: int) -> Dictionary:
 '''
 s = s[:start] + new_cost + s[end:]
 s = s.replace('''        var xp_cost := 400 * tier
-        var gold_cost := 900 * tier''', '''        var xp_cost := [400, 800, 1400, 2200][clampi(tier - 1, 0, 3)]
-        var gold_cost := [900, 1800, 3200, 5000][clampi(tier - 1, 0, 3)]''', 1)
+        var gold_cost := 900 * tier''', '''        var xp_cost: int = [400, 800, 1400, 2200][clampi(tier - 1, 0, 3)]
+        var gold_cost: int = [900, 1800, 3200, 5000][clampi(tier - 1, 0, 3)]''', 1)
 s = s.replace('''    var xp_required := 400 * tier
-    var gold_required := 900 * tier''', '''    var xp_required := [400, 800, 1400, 2200][clampi(tier - 1, 0, 3)]
-    var gold_required := [900, 1800, 3200, 5000][clampi(tier - 1, 0, 3)]''', 1)
+    var gold_required := 900 * tier''', '''    var xp_required: int = [400, 800, 1400, 2200][clampi(tier - 1, 0, 3)]
+    var gold_required: int = [900, 1800, 3200, 5000][clampi(tier - 1, 0, 3)]''', 1)
 anchor = '    balances["zloty"]=int(wallet.get("zloty",balances["zloty"]))\n    balances["xp"]=int(wallet.get("xp",balances["xp"]))'
 replacement = '    balances["zloty"]=int(wallet.get("zloty",balances["zloty"]))\n    balances["xp"]=int(wallet.get("xp",balances["xp"]))\n    balances["chessmatites"]=int(wallet.get("gambits",wallet.get("chessmatites",balances["chessmatites"])))'
 if anchor not in s: raise SystemExit('city wallet sync anchor missing')
