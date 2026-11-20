@@ -126,6 +126,7 @@ function makeInitialBoard(players){
   }
   return board;
 }
+function isVoteMode(state){return /голос|vote/i.test(String(state?.mode||""));}
 export function createGameState(match){
   const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
   const whiteStart=players.find(p=>p.playerId===match.startingPlayerId&&p.team==="white")||players.find(p=>p.team==="white");
@@ -135,7 +136,7 @@ export function createGameState(match){
     matchId:match.id,mode:match.mode,createdAt:Date.now(),status:"active",result:null,winnerTeam:null,
     players,board:makeInitialBoard(players),activeTeam:"white",activePlayerId:whiteStart?.playerId||"",
     startingPlayerId:whiteStart?.playerId||"",nextSlot:{white:whiteStart?(whiteStart.slot+1)%8:0,black:blackStart?blackStart.slot:0},
-    turn:1,moveNumber:1,halfmoveClock:0,history:[],chat:[],passedThisTurn:[],updatedAt:Date.now()
+    turn:1,moveNumber:1,halfmoveClock:0,history:[],chat:[],passedThisTurn:[],pendingVote:null,updatedAt:Date.now()
   };
 }
 function sanitizeState(state,viewerId){
@@ -145,12 +146,15 @@ function sanitizeState(state,viewerId){
     activeTeam:state.activeTeam,activePlayerId:state.activePlayerId,startingPlayerId:state.startingPlayerId,
     turn:state.turn,moveNumber:state.moveNumber,board:clone(state.board),
     players:state.players.map(p=>({...p,stats:{...(p.stats||{})}})),viewer:{playerId:viewerId,team:viewer?.team||null,eliminated:viewer?.eliminated??true},
-    chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
+    chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),pendingVote:state.pendingVote&&state.pendingVote.team===viewer?.team?{proposerId:state.pendingVote.proposerId,team:state.pendingVote.team,move:clone(state.pendingVote.move),votes:Object.values(state.pendingVote.votes),approveCount:Object.values(state.pendingVote.votes).filter(v=>v==="approve").length,rejectCount:Object.values(state.pendingVote.votes).filter(v=>v==="reject").length,requiredVotes:state.pendingVote.requiredVotes,viewerVote:state.pendingVote.votes[viewerId]||null}:null,lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
   };
 }
 export function getGameState(match,viewerId){return match?.game?sanitizeState(match.game,viewerId):null;}
-export function applyGameMove(match,playerId,move){
+export function applyGameMove(match,playerId,move,approvedByVote=false){
   const state=match?.game;if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  if(isVoteMode(state)&&!approvedByVote)return{status:403,error:"VOTE_REQUIRED"};
+  if(state.pendingVote&&!approvedByVote)return{status:409,error:"VOTE_IN_PROGRESS"};
+  if(approvedByVote)state.pendingVote=null;
   if(state.activePlayerId!==playerId)return{status:403,error:"NOT_YOUR_TURN"};
   const fromFile=Number(move.fromFile),fromRow=Number(move.fromRow),toFile=Number(move.toFile),toRow=Number(move.toRow);
   if(![fromFile,fromRow,toFile,toRow].every(Number.isInteger)||![fromFile,fromRow,toFile,toRow].every(n=>n>=0&&n<8))return{status:400,error:"INVALID_COORDINATES"};
@@ -200,6 +204,7 @@ export function applyGameMove(match,playerId,move){
 }
 export function passGameTurn(match,playerId){
   const state=match?.game;if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  if(state.pendingVote)return{status:409,error:"VOTE_IN_PROGRESS"};
   if(state.activePlayerId!==playerId)return{status:403,error:"NOT_YOUR_TURN"};
   const player=state.players.find(p=>p.playerId===playerId);
   if(!player)return{status:404,error:"PLAYER_NOT_IN_MATCH"};
@@ -216,6 +221,63 @@ export function passGameTurn(match,playerId){
   if (state.status === "active") state.updatedAt=Date.now();
   return{status:200,state:sanitizeState(state,playerId)};
 }
+
+export function proposeGameMove(match,playerId,move){
+  const state=match?.game;
+  if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  if(!isVoteMode(state))return{status:409,error:"VOTING_MODE_REQUIRED"};
+  if(state.pendingVote)return{status:409,error:"VOTE_IN_PROGRESS"};
+  if(state.activePlayerId!==playerId)return{status:403,error:"NOT_YOUR_TURN"};
+  const fromFile=Number(move.fromFile),fromRow=Number(move.fromRow),toFile=Number(move.toFile),toRow=Number(move.toRow);
+  if(![fromFile,fromRow,toFile,toRow].every(Number.isInteger)||![fromFile,fromRow,toFile,toRow].every(n=>n>=0&&n<8))return{status:400,error:"INVALID_COORDINATES"};
+  const piece=at(state.board,fromFile,fromRow);
+  if(!piece||piece.ownerPlayerId!==playerId||piece.team!==state.activeTeam)return{status:403,error:"PIECE_NOT_OWNED"};
+  if(!legalMove(state.board,piece,toFile,toRow))return{status:400,error:"ILLEGAL_MOVE"};
+  const voters=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated);
+  state.pendingVote={proposerId:playerId,team:state.activeTeam,move:{fromFile,fromRow,toFile,toRow},votes:{},requiredVotes:Math.floor(voters.length/2)+1,createdAt:Date.now()};
+  state.updatedAt=Date.now();
+  return{status:200,state:sanitizeState(state,playerId)};
+}
+export function castGameVote(match,playerId,vote){
+  const state=match?.game;
+  if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
+  if(!isVoteMode(state))return{status:409,error:"VOTING_MODE_REQUIRED"};
+  const pending=state.pendingVote;
+  if(!pending)return{status:409,error:"NO_PENDING_VOTE"};
+  const player=state.players.find(p=>p.playerId===playerId);
+  if(!player)return{status:403,error:"PLAYER_NOT_IN_MATCH"};
+  if(player.team!==pending.team||player.eliminated)return{status:403,error:"VOTE_NOT_ALLOWED"};
+  if(!["approve","reject"].includes(vote))return{status:400,error:"INVALID_VOTE"};
+  if(Object.prototype.hasOwnProperty.call(pending.votes,playerId))return{status:409,error:"ALREADY_VOTED"};
+  pending.votes[playerId]=vote;
+  const approveCount=Object.values(pending.votes).filter(v=>v==="approve").length;
+  const rejectCount=Object.values(pending.votes).filter(v=>v==="reject").length;
+  const voters=state.players.filter(p=>p.team===pending.team&&!p.eliminated);
+  const allVoted=Object.keys(pending.votes).length>=voters.length;
+  let decision=null;
+  if(approveCount>=pending.requiredVotes)decision="approve";
+  else if(rejectCount>=pending.requiredVotes)decision="reject";
+  else if(allVoted)decision=approveCount>rejectCount?"approve":"reject";
+  if(!decision){
+    state.updatedAt=Date.now();
+    return{status:200,state:sanitizeState(state,playerId),vote:{decision:null,approveCount,rejectCount,requiredVotes:pending.requiredVotes}};
+  }
+  for(const [voterId,choice] of Object.entries(pending.votes)){
+    const voter=state.players.find(p=>p.playerId===voterId);
+    if(voter){voter.stats=voter.stats||{};voter.stats.votes=(voter.stats.votes||0)+1;if(choice===decision)voter.stats.correctVotes=(voter.stats.correctVotes||0)+1;}
+  }
+  const move=clone(pending.move),proposerId=pending.proposerId;
+  state.pendingVote=null;
+  if(decision==="approve"){
+    const result=applyGameMove(match,proposerId,move,true);
+    if(result.state)result.vote={decision,approveCount,rejectCount,requiredVotes:pending.requiredVotes};
+    return result;
+  }
+  const result=passGameTurn(match,proposerId);
+  if(result.state)result.vote={decision,approveCount,rejectCount,requiredVotes:pending.requiredVotes};
+  return result;
+}
+
 export function sendTeamChat(match,playerId,message){
   const state=match?.game;if(!state)return{status:404,error:"MATCH_NOT_FOUND"};
   const player=state.players.find(p=>p.playerId===playerId);if(!player)return{status:403,error:"PLAYER_NOT_IN_MATCH"};
