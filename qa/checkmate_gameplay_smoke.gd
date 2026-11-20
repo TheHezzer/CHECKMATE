@@ -135,13 +135,27 @@ func _run() -> void:
     _check(growth != null and unlock != null and not growth.get_global_rect().intersects(unlock.get_global_rect()), "research growth text does not overlap unlock button")
     _check(game.progression_panel.visible, "piece research screen opens")
 
-    # Chess City hub and deployment are checked separately; attack matchmaking is not implemented yet.
+    # Chess City hub, deployment and offline combat are exercised separately.
     game._return_to_menu()
     game._open_city_screen()
     _check(game.castle_hub_battle_panel.visible, "Chess City castle hub opens")
     game._open_castle_hub_deployment()
     _check(game.castle_hub_deploy_panel.visible, "Chess City army deployment opens")
     game._close_castle_hub_deployment()
+    game.castle_hub_army = {"0,6":"Пешка"}
+    game.castle_hub_state = {"castle_level":1,"energy":150,"army":{"0,6":"Пешка"}}
+    game._city_offline_start_battle()
+    _check(game.city_offline_active and game.city_offline_battle_panel.visible, "Chess City starts a local training battle")
+    _check(game.city_offline_units.size() == 17, "offline training creates player army and 16-piece bot army")
+    game.city_offline_units["0,6"] = {"name":"Ферзь","team":"player","col":0,"row":6,"health":200,"max_health":200,"armor":0,"max_armor":0,"damage":115,"shield":0,"max_shield":0}
+    game.city_offline_units["0,1"] = {"name":"Пешка","team":"bot","col":0,"row":1,"health":100,"max_health":100,"armor":50,"max_armor":50,"damage":40,"shield":30,"max_shield":30}
+    game._city_offline_attack("0,6","0,1")
+    var damaged := game.city_offline_units["0,1"]
+    _check(int(damaged.health) == 65 and int(damaged.armor) == 0 and int(damaged.shield) == 0, "combat damage removes temporary shield first, then armor, then health")
+    _check(game.city_offline_units.has("0,6"), "attacking figure returns to its original square after a duel")
+    _check(game._city_offline_is_legal({"name":"Пешка","team":"bot","col":0,"row":1},0,2,false), "bot pawn has legal forward movement")
+    game._city_offline_exit()
+    _check(not game.city_offline_active and game.castle_hub_battle_panel.visible, "leaving offline battle returns to Chess City hub")
     game._close_city_screen()
 
     print("CHECKMATE QA SUMMARY: %d checks, %d failures" % [checks, failures.size()])
