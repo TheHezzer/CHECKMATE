@@ -70,8 +70,8 @@ jobs:
           cp patches/add_classic_rules_v34.py "$project_dir/patches/add_classic_rules_v34.py"
           cp patches/add_random_team_colors_v35.py "$project_dir/patches/add_random_team_colors_v35.py"
           cp patches/fix_online_economy_v37.py "$project_dir/patches/fix_online_economy_v37.py"
-          cp patches/upgrade_classic_rewards_v39.py "$project_dir/patches/upgrade_classic_rewards_v39.py"
-          cp patches/connect_performance_rewards_v39.py "$project_dir/patches/connect_performance_rewards_v39.py"
+          cp patches/upgrade_classic_rewards_v38.py "$project_dir/patches/upgrade_classic_rewards_v39.py"
+          cp patches/connect_performance_rewards_v38.py "$project_dir/patches/connect_performance_rewards_v39.py"
           for i in {1..8}; do cp "patches/add_online_gameplay_city_v36.part${i}" "$project_dir/patches/add_online_gameplay_city_v36.part${i}"; done
           python "$project_dir/patches/apply_patch.py"
           python "$project_dir/patches/add_modes_screen.py"
