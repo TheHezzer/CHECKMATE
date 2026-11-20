@@ -37,7 +37,16 @@ test("reward values are capped by quality and tactical event limits", () => {
   assert.equal(reward.breakdown.tactics.zloty, 40);
 });
 
-test("even an inactive loss earns enough for the cheapest pawn-plus-knight bundle", () => {
+test("even an inactive Chess City loss receives the participation share", () => {
   const reward = calculateMatchReward({ winnerTeam: "black", playerTeam: "white", stats: {} });
-  assert.equal(reward.zloty, 30);
+  assert.equal(reward.zloty, 175);
+  assert.equal(reward.xp, 88);
+});
+
+test("win, draw and loss use the agreed Chess City reward scale", () => {
+  const win = calculateMatchReward({ winnerTeam: "white", playerTeam: "white", stats: { moves: 3 } });
+  const draw = calculateMatchReward({ winnerTeam: "draw", playerTeam: "white", stats: { moves: 3 } });
+  const loss = calculateMatchReward({ winnerTeam: "black", playerTeam: "white", stats: { moves: 3 } });
+  assert.ok(win.xp > draw.xp && draw.xp > loss.xp);
+  assert.ok(win.zloty > draw.zloty && draw.zloty > loss.zloty);
 });
