@@ -301,6 +301,48 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return results;
   }
 
+  async function addNotificationById(playerId, notification = {}) {
+    await load();
+    const account = accounts.find(item => item.id === playerId);
+    if (!account) return false;
+    if (!Array.isArray(account.notifications)) account.notifications = [];
+    const id = String(notification.id || crypto.randomUUID()).slice(0, 128);
+    if (account.notifications.some(item => item.id === id)) return true;
+    account.notifications.unshift({
+      id,
+      type: String(notification.type || "system").slice(0, 40),
+      title: String(notification.title || "Уведомление").slice(0, 120),
+      message: String(notification.message || "").slice(0, 1000),
+      createdAt: notification.createdAt || new Date().toISOString(),
+      read: false,
+      data: notification.data && typeof notification.data === "object" ? notification.data : {}
+    });
+    account.notifications = account.notifications.slice(0, 50);
+    await persist();
+    return true;
+  }
+
+  async function getNotifications(token, limit = 30) {
+    await load();
+    const account = verifyToken(token);
+    if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
+    if (!Array.isArray(account.notifications)) account.notifications = [];
+    return { status: 200, body: { notifications: account.notifications.slice(0, Math.max(1, Math.min(50, Number(limit) || 30))) } };
+  }
+
+  async function markNotificationsRead(token, ids = []) {
+    await load();
+    const account = verifyToken(token);
+    if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
+    if (!Array.isArray(account.notifications)) account.notifications = [];
+    const selected = new Set(Array.isArray(ids) ? ids.map(value => String(value)) : []);
+    for (const item of account.notifications) {
+      if (selected.size === 0 || selected.has(item.id)) item.read = true;
+    }
+    await persist();
+    return { status: 200, body: { notifications: account.notifications } };
+  }
+
   async function leaderboard(limit = 50) {
     await load();
     const rows = [...accounts]
@@ -310,5 +352,5 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return rows;
   }
 
-  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, adminGrantResources, awardMatchById, reserveClassicMatchPiece, refundClassicMatchPieceById };
+  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, adminGrantResources, awardMatchById, reserveClassicMatchPiece, refundClassicMatchPieceById, addNotificationById, getNotifications, markNotificationsRead };
 }
