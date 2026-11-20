@@ -1,5 +1,5 @@
-name: Build CHECKMATE classic v68 — ready timer and vote HUD
-# v68 ready countdown, right vote panel, camera and typography (retry after patch anchor correction)
+name: Build CHECKMATE classic v69 — offline controls and ready HUD
+# v69 offline piece hit detection, teammate pass, bot ownership; v68 ready timer and HUD
 # v66 profile and admin controls
 # v66 bot test fix
 # Rebuild after correcting the v46 patch path.
@@ -162,6 +162,8 @@ jobs:
           python "$project_dir/patches/add_start_button_mode_selection_v67.py"
           cp patches/add_ready_vote_hud_camera_v68.py "$project_dir/patches/add_ready_vote_hud_camera_v68.py"
           python "$project_dir/patches/add_ready_vote_hud_camera_v68.py"
+          cp patches/fix_offline_controls_v69.py "$project_dir/patches/fix_offline_controls_v69.py"
+          python "$project_dir/patches/fix_offline_controls_v69.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -179,23 +181,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v68.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v68.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v69.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v69.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v68.zip" builds/CHECKMATE_classic_v68.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v69.zip" builds/CHECKMATE_classic_v69.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v68 build"
+          commit_message: "Save CHECKMATE classic v69 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v68.zip
+          file_pattern: builds/CHECKMATE_classic_v69.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v68
-          path: CHECKMATE_classic_v68.zip
+          name: CHECKMATE-classic-v69
+          path: CHECKMATE_classic_v69.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
