@@ -49,7 +49,7 @@ rep('    standard_chess_mode_active = mode_name == "Стандартные ша�
     '    var team_chat := game_panel.find_child("TeamChatPanel", true, false)',
     "remove late standard mode assignment")
 rep('    if team_chat:\n        team_chat.visible = not standard_chess_mode_active',
-    '    if team_chat:\n        team_chat.visible = not standard_chess_mode_active\n    if team_chat_label:\n        team_chat_label.visible = not standard_chess_mode_active\n    if team_chat_input:\n        team_chat_input.visible = not standard_chess_mode_active\n    var chat_send_button := game_panel.find_child("ОТПРАВИТЬ", true, false)\n    if chat_send_button is Button:\n        chat_send_button.visible = not standard_chess_mode_active',
+    '    if team_chat:\n        team_chat.visible = not standard_chess_mode_active\n    if team_chat_label:\n        team_chat_label.visible = not standard_chess_mode_active\n    if team_chat_input:\n        team_chat_input.visible = not standard_chess_mode_active\n    for chat_button in game_panel.find_children("*", "Button", true, false):\n        if chat_button is Button and str(chat_button.text).contains("ОТПРАВИТЬ"):\n            chat_button.visible = not standard_chess_mode_active',
     "hide standalone team chat controls in standard chess")
 
 # Compact match header and keep the turn label away from the large title panel.
