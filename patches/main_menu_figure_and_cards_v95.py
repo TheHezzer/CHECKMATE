@@ -55,3 +55,5 @@ rep("        preview_pawn.rotation.y = deg_to_rad(45.0)",
 
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v95: larger left-card text and central upright wooden figure, with pedestal removed.")
+
+# Rebuild trigger after correcting the workflow patch sequence.
