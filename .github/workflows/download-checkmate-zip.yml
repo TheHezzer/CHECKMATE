@@ -200,22 +200,22 @@ jobs:
           fi
 
           (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v78.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v77.zip"
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v78.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v77.zip" builds/CHECKMATE_classic_v77.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v78.zip" builds/CHECKMATE_classic_v78.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Save CHECKMATE classic v78 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v77.zip
+          file_pattern: builds/CHECKMATE_classic_v78.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
           name: CHECKMATE-classic-v78
-          path: CHECKMATE_classic_v77.zip
+          path: CHECKMATE_classic_v78.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
