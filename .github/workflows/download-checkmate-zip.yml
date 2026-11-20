@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v88 — timed castle upgrades
+name: Build CHECKMATE classic v89 — timed castle upgrades
 # v76 randomizes local test colors and adds a manual self-play chess test
 # v78 updates Chess City-only match rewards and economy isolation
 # v79 redesigns figure research as connected current/locked level cards
@@ -212,6 +212,8 @@ jobs:
           python "$project_dir/patches/castle_timed_upgrades_v87.py"
           cp patches/gambit_ruble_store_v88.py "$project_dir/patches/gambit_ruble_store_v88.py"
           python "$project_dir/patches/gambit_ruble_store_v88.py"
+          cp patches/fix_gambit_store_layout_v89.py "$project_dir/patches/fix_gambit_store_layout_v89.py"
+          python "$project_dir/patches/fix_gambit_store_layout_v89.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -229,23 +231,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v88.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v88.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v89.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v89.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v88.zip" builds/CHECKMATE_classic_v88.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v89.zip" builds/CHECKMATE_classic_v89.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v88 build"
+          commit_message: "Save CHECKMATE classic v89 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v88.zip
+          file_pattern: builds/CHECKMATE_classic_v89.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v88
-          path: CHECKMATE_classic_v88.zip
+          name: CHECKMATE-classic-v89
+          path: CHECKMATE_classic_v89.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
