@@ -83,3 +83,32 @@ test("Chess City skins remain locked until purchased with XP and zloty",async()=
  assert.equal(city.wallet.xp,600);
  assert.equal(city.wallet.zloty,11750);
 }));
+
+test("matched players receive private session tokens and can use the authoritative match API",async()=>withServer(async base=>{
+ const roles=["Ладья","Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
+ const tickets=[];
+ for(let i=0;i<16;i++)tickets.push(await queue(base,"live"+i,1000,roles[i]));
+ const firstTicket=tickets[0].data.ticket;
+ const matched=await fetch(base+"/matchmaking/queue/"+firstTicket).then(r=>r.json());
+ assert.equal(matched.status,"matched");
+ assert.ok(matched.playerSessionToken);
+ const startTicket=tickets.find(x=>x.data.ticket===firstTicket) || tickets[0];
+ const roster=matched.players;
+ const starter=roster.find(p=>p.playerId===matched.startingPlayerId);
+ const starterIndex=Number(starter.playerId.replace("live",""));
+ const starterTicket=tickets[starterIndex].data.ticket;
+ const starterSession=await fetch(base+"/matchmaking/queue/"+starterTicket).then(r=>r.json());
+ assert.ok(starterSession.playerSessionToken);
+ const stateResponse=await fetch(base+"/matches/"+matched.matchId+"/state",{headers:{"x-player-session":starterSession.playerSessionToken}});
+ assert.equal(stateResponse.status,200);
+ const state=await stateResponse.json();
+ assert.equal(state.activeTeam,"white");
+ assert.equal(state.activePlayerId,matched.startingPlayerId);
+ assert.equal(state.board.length,32);
+ const move=await fetch(base+"/matches/"+matched.matchId+"/move",{method:"POST",headers:{"content-type":"application/json","x-player-session":starterSession.playerSessionToken},body:JSON.stringify({fromFile:starter.slot,fromRow:6,toFile:starter.slot,toRow:5})});
+ assert.equal(move.status,200);
+ const after=await move.json();
+ assert.equal(after.activeTeam,"black");
+ const denied=await fetch(base+"/matches/"+matched.matchId+"/state",{headers:{"x-player-session":"wrong-token"}});
+ assert.equal(denied.status,401);
+}));
