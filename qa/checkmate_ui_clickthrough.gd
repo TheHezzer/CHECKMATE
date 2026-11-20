@@ -124,6 +124,23 @@ func _run() -> void:
 
     _check(await _click(game.menu_panel, "ВОЙТИ"), "account Login button responds")
     _check(game.account_panel.visible, "account panel opens")
+    game.account_username_input.text = "x"
+    game.account_password_input.text = "short"
+    _check(await _click(game.account_panel, "ВОЙТИ ОНЛАЙН"), "online login button responds to invalid credentials")
+    _check(game.account_status_label.text.contains("Логин"), "invalid online login is rejected with validation feedback")
+    _check(await _click(game.account_panel, "РЕГИСТРАЦИЯ"), "registration button responds to invalid credentials")
+    _check(game.account_status_label.text.contains("Логин"), "invalid registration is rejected with validation feedback")
+
+    # Exercise the explicitly offline developer/admin test path without fabricating an online token.
+    game.account_username_input.text = "TheHezzer"
+    game.account_password_input.text = "admin"
+    _check(await _click(game.account_panel, "ОФЛАЙН"), "offline administrator login button responds")
+    _check(game.local_offline_mode_active and game.local_bot_test_active and game.developer_mode, "offline administrator login enables bot-only developer mode")
+    _check(game.account_token.is_empty(), "offline administrator test does not fabricate a server account token")
+    game._return_to_menu()
+    _check(game.menu_panel.visible and not game.local_offline_mode_active, "leaving offline administrator test returns to a clean menu")
+
+    _check(await _click(game.menu_panel, "ВОЙТИ"), "account dialog can be reopened after admin test")
     _check(await _click(game.account_panel, "ГОСТЬ"), "guest/offline account option responds")
     _check(game.menu_panel.visible, "guest login returns to main menu")
 
