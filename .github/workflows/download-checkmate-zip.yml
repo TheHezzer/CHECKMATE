@@ -1,4 +1,4 @@
-name: Build CHECKMATE classic v97 — enlarged upright menu figure
+name: Visual inspection CHECKMATE v97 — continue to main menu
 # v97 enlarges the central figure and left cards, and lowers figure selection buttons
 # v76 randomizes local test colors and adds a manual self-play chess test
 # v78 updates Chess City-only match rewards and economy isolation
@@ -246,7 +246,7 @@ jobs:
           fi
 
           if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
-            timeout 120s sudo apt-get install -y --no-install-recommends xvfb ffmpeg
+            timeout 120s sudo apt-get install -y --no-install-recommends xvfb ffmpeg xdotool
           fi
           Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
           XVFB_PID=$!
@@ -255,8 +255,11 @@ jobs:
           "$GODOT_BIN" --path "$project_dir" --windowed --resolution 1920x1080 > visual-run.log 2>&1 &
           GAME_PID=$!
           sleep 8
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_main_menu_review.png
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 8 CHECKMATE_startup_review.mp4
+          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_intro_review.png
+          xdotool mousemove 960 560 click 1
+          sleep 6
+          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_after_continue_review.png
+          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 20 CHECKMATE_after_continue_review.mp4
           kill "$GAME_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
           if grep -E "SCRIPT ERROR|Parse Error" visual-run.log; then
