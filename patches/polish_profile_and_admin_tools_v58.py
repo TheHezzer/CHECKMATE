@@ -93,6 +93,11 @@ rep('''func _refresh_profile_card() -> void:
         var vip_active := bool(city_profile_data.get("vipActive", false))
         profile_vip_label.text = "VIP  •  АКТИВЕН" if vip_active else "VIP  •  НЕ ПРИОБРЕТЁН"
         profile_vip_label.add_theme_color_override("font_color", PALE_GOLD if vip_active else Color(0.62, 0.59, 0.54))
+    if menu_panel:
+        var bot_button := menu_panel.find_child("AdminBotTestButton", true, false) as Button
+        var admin_button := menu_panel.find_child("AdminToolsButton", true, false) as Button
+        if bot_button: bot_button.visible = developer_mode
+        if admin_button: admin_button.visible = developer_mode
 ''',"compact profile and VIP status")
 
 rep('''            account_username = str(account.get("username", "Игрок"))
