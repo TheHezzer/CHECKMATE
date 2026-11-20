@@ -116,3 +116,42 @@ test("only configured admin can grant resources to another account", async () =>
     assert.equal(profile.city.wallet.gambits, 10);
   }, { adminUsername: "TheHezzer", adminPassword });
 });
+
+
+test("match notifications are persistent, readable and can be marked as read", async () => {
+  await withAccountServer(async base => {
+    const created = await post(base, "/accounts/register", { username: "NotifyPlayer", password: "notify-pass-123" });
+    const headers = { "content-type": "application/json", authorization: "Bearer " + created.data.token };
+    const pushed = await fetch(base + "/notifications", { headers });
+    assert.equal(pushed.status, 200);
+    assert.deepEqual((await pushed.json()).notifications, []);
+    const saved = await fetch(base + "/notifications/read", {
+      method: "POST", headers, body: JSON.stringify({ ids: [] })
+    });
+    assert.equal(saved.status, 200);
+  });
+});
+
+test("rating settlement updates each account once and applies abandonment penalty", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "checkmate-rating-"));
+  const options = { dataFile: path.join(dir, "accounts.json"), tokenSecret: "rating-test-secret" };
+  try {
+    const { createAccountService } = await import("./accounts.js");
+    const service = createAccountService(options);
+    const a = await service.register({ username: "RatingWhite", password: "rating-pass-123" });
+    const b = await service.register({ username: "RatingBlack", password: "rating-pass-123" });
+    const players = [
+      { playerId: a.body.account.playerId, team: "white", abandoned: true },
+      { playerId: b.body.account.playerId, team: "black", abandoned: false }
+    ];
+    const results = await service.applyMatchRatingById(players, "black");
+    assert.equal(results.length, 2);
+    assert.equal(results.find(x => x.playerId === a.body.account.playerId).abandonmentPenalty, 20);
+    const meA = await service.me(a.body.token);
+    const meB = await service.me(b.body.token);
+    assert.equal(meA.body.account.matches, 1);
+    assert.equal(meB.body.account.matches, 1);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
