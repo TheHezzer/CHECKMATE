@@ -11,7 +11,10 @@ def rep(old: str, new: str, label: str) -> None:
     s = s.replace(old, new, 1)
 
 # Make the central 3D figure larger without changing its model.
-rep("    preview_camera.fov = 32", "    preview_camera.fov = 26", "larger central preview camera")
+fov_match = re.search(r"preview_camera\\.fov = [0-9.]+", s)
+if not fov_match:
+    raise SystemExit("Missing v91 preview camera FOV")
+s = s[:fov_match.start()] + "preview_camera.fov = 26" + s[fov_match.end():]
 rep("""    preview_container.anchor_left = 0.315
     preview_container.anchor_top = 0.285
     preview_container.anchor_right = 0.685
