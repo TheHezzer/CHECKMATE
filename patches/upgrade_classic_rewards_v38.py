@@ -19,12 +19,12 @@ def replace_func(source, name, body):
     start = source.find(marker)
     if start < 0:
         raise SystemExit("Missing function " + name)
-    end = source.find("\\nfunc ", start + len(marker))
+    end = source.find("\nfunc ", start + len(marker))
     if end < 0:
         end = len(source)
-    return source[:start] + body.rstrip() + "\\n" + source[end:]
+    return source[:start] + body.rstrip() + "\n" + source[end:]
 
-s = replace_func(s, "_refresh_preparation_ui", \'\'\'func _refresh_preparation_ui() -> void:
+s = replace_func(s, "_refresh_preparation_ui", '''func _refresh_preparation_ui() -> void:
     if preparation_panel == null:
         return
     for i in range(prep_piece_buttons.size()):
@@ -47,9 +47,9 @@ s = replace_func(s, "_refresh_preparation_ui", \'\'\'func _refresh_preparation_u
             prep_status.text = "СТАРТОВАЯ ЗАЩИТА: комплект пешка + конь стоит 30 злотых. Баланс будет восстановлен до 30."
         else:
             prep_status.text = "РАСХОДНИК НА ОДНУ ПАРТИЮ: %d злотых\\nБаланс: %d • %s" % [cost, have, ("не хватает " + str(cost - have)) if have < cost else "средств достаточно"]
-    _save_economy()\'\'\')
+    _save_economy()''')
 
-s = replace_func(s, "_purchase_or_unlock_selected", \'\'\'func _purchase_or_unlock_selected() -> void:
+s = replace_func(s, "_purchase_or_unlock_selected", '''func _purchase_or_unlock_selected() -> void:
     var piece_name: String = PIECES[selected_prep_piece]
     if piece_name == "Пешка":
         prep_status.text = "Пешка обязательна. Выбери вторую фигуру для комплекта."
@@ -72,7 +72,7 @@ s = replace_func(s, "_purchase_or_unlock_selected", \'\'\'func _purchase_or_unlo
     pending_match_purchase_piece = piece_name
     _save_economy()
     prep_status.text = "Комплект пешка + " + piece_name.to_lower() + " куплен на одну партию за %d злотых. При отмене поиска деньги вернутся." % cost
-    _refresh_preparation_ui()\'\'\')
+    _refresh_preparation_ui()''')
 
 
 # Update the tutorial's explanation to match the free Classic roster.
