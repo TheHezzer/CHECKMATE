@@ -42,8 +42,8 @@ for name, size in [
     ("pass_title", 22), ("pass_desc", 18),
     ("event_title", 22), ("event_desc", 18),
 ]:
-    pattern = rf'({name}\\.add_theme_font_size_override\\("font_size", )\\d+(\\))'
-    s, count = re.subn(pattern, rf'\\g<1>{size}\\g<2>', s, count=1)
+    pattern = rf'({name}\.add_theme_font_size_override\("font_size", )\d+(\))'
+    s, count = re.subn(pattern, rf'\g<1>{size}\g<2>', s, count=1)
     if count != 1:
         raise SystemExit("Missing v91 left card typography anchor: " + name)
 
