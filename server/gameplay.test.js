@@ -34,7 +34,7 @@ test("only the active player can move their own piece and white opens",()=>{
  assert.notEqual(match.game.activePlayerId,"white-0");
 });
 test("server rejects illegal moves and pieces owned by another teammate",()=>{
- const match={players:fixture().players,game:createGameState(fixture())};
+ const f=fixture();const match=startedMatch(f);
  assert.equal(applyGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:3}).error,"ILLEGAL_MOVE");
  assert.equal(applyGameMove(match,"white-0",{fromFile:1,fromRow:6,toFile:1,toRow:5}).error,"PIECE_NOT_OWNED");
 });
