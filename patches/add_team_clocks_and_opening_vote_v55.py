@@ -14,6 +14,7 @@ var player_clock_label: Label
 var opening_vote_panel: Control
 var opening_vote_label: Label
 var opening_vote_option: OptionButton
+var opening_vote_candidates: Array = []
 var opening_vote_button: Button
 var local_team_clocks := {"white": 600.0, "black": 600.0}
 var local_player_seconds := 20.0
