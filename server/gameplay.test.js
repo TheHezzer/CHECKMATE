@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {createGameState,getGameState,applyGameMove,passGameTurn,proposeGameMove,castGameVote,castOpeningVote,sendTeamChat} from "./gameplay.js";
 
 function startedMatch(f){
- const match=startedMatch(f);
+ const match={players:f.players,game:createGameState(f)};
  const now=Date.now();
  for(let slot=0;slot<5;slot++)castOpeningVote(match,"white-"+slot,"white-0",now);
  return match;
