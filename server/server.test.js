@@ -7,7 +7,7 @@ test("health endpoint reports service",async()=>withServer(async base=>{const r=
 test("manual room creation is disabled",async()=>withServer(async base=>{const r=await fetch(base+"/rooms",{method:"POST",headers:{"content-type":"application/json"},body:"{}"});assert.equal(r.status,404)}));
 test("classic matchmaking creates 8v8 teams with a pawn and selected second piece per player",async()=>withServer(async base=>{
  let first;let n=0;
- const roles=["Ладья","Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
+ const roles=["Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
  for(let i=0;i<16;i++){
    const r=await queue(base,"p"+i,1000+(i%8)*5,roles[i%roles.length]);
    if(i===0)first=r;
