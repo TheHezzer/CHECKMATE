@@ -94,8 +94,6 @@ func _run() -> void:
             streak_intro = candidate
         elif candidate.text.begins_with("ТЕКУЩАЯ СЕРИЯ"):
             streak_status = candidate
-    if streak_intro != null and streak_status != null:
-        print("UI DEBUG streak intro y=%s h=%s status y=%s" % [str(streak_intro.position.y), str(streak_intro.size.y), str(streak_status.position.y)])
     _check(streak_intro != null and streak_status != null and streak_intro.position.y + streak_intro.size.y <= streak_status.position.y, "login streak intro and status labels do not overlap")
     var streak_cards_clear := true
     for card_entry in game.login_streak_day_cards:
@@ -103,8 +101,6 @@ func _run() -> void:
         var card_labels: Array = card_node.find_children("*", "Label", true, false)
         card_labels.sort_custom(func(left, right): return (left as Control).position.y < (right as Control).position.y)
         if card_labels.size() >= 3:
-            if card_entry == game.login_streak_day_cards[0]:
-                print("UI DEBUG streak card y positions: %s" % str(card_labels.map(func(item): return [item.position.y, item.size.y])))
             var day_label := card_labels[0] as Label
             var reward_label := card_labels[1] as Label
             var state_label := card_labels[2] as Label
