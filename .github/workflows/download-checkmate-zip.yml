@@ -356,15 +356,15 @@ jobs:
           fi
 
           (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v111.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v110.zip"
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v111.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v110.zip" builds/CHECKMATE_classic_v110.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v111.zip" builds/CHECKMATE_classic_v111.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
           name: CHECKMATE-classic-v111
-          path: CHECKMATE_classic_v110.zip
+          path: CHECKMATE_classic_v111.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
