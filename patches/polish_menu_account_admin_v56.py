@@ -77,13 +77,14 @@ rep('''    var login := _ornate_button(frame, "ВОЙТИ", 0.045, 0.49, 0.48, 0
 # Make account success greeting central; elevate TheHezzer to master admin after normal account login.
 rep('''                var welcome := "Добро пожаловать, " + account_username + "!"
                 _set_account_status(welcome + " Загружаем твой прогресс…")
-                _save_account_session()
+                _show_notice(welcome)
                 _close_account_panel()
+                _send_matchmaking_request("city_profile", "/city/profile", HTTPClient.METHOD_GET)
 ''','''                var welcome := "Добро пожаловать, " + account_username + "!"
                 _set_account_status(welcome)
-                _save_account_session()
-                _close_account_panel()
                 _show_notice(welcome)
+                _close_account_panel()
+                _send_matchmaking_request("city_profile", "/city/profile", HTTPClient.METHOD_GET)
                 if account_username.to_lower() == "thehezzer":
                     developer_mode = true
                     if developer_test_menu:
