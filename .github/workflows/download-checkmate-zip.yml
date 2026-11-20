@@ -1,5 +1,6 @@
 name: Build CHECKMATE classic v58 — profile and admin tools
 # v58 profile and admin controls
+# v58 bot test fix
 # Rebuild after correcting the v46 patch path.
 
 concurrency:
