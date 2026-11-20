@@ -225,6 +225,28 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return { status: 200, body: { city: cityPayload(account), purchasedSkin: skin } };
   }
 
+  async function awardMatchById(players, winnerTeam) {
+    await load();
+    const results = [];
+    for (const player of players || []) {
+      const account = accounts.find(item => item.id === player.playerId);
+      if (!account) continue;
+      const city = ensureCity(account);
+      const won = winnerTeam === player.team;
+      const xp = won ? 100 : 50;
+      const zloty = won ? 200 : 100;
+      city.wallet.xp += xp;
+      city.wallet.zloty += zloty;
+      account.matches = (account.matches || 0) + 1;
+      if (winnerTeam === "draw") account.draws = (account.draws || 0) + 1;
+      else if (won) account.wins = (account.wins || 0) + 1;
+      else account.losses = (account.losses || 0) + 1;
+      results.push({ playerId: account.id, xp, zloty, won, city: cityPayload(account) });
+    }
+    if (results.length) await persist();
+    return results;
+  }
+
   async function leaderboard(limit = 50) {
     await load();
     const rows = [...accounts]
@@ -234,5 +256,5 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return rows;
   }
 
-  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin };
+  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin, awardMatchById };
 }
