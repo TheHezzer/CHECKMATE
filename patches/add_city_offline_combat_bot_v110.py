@@ -347,17 +347,17 @@ func _city_offline_finish_turn(team: String) -> void:
     if team=="player":
         city_offline_turn = "bot"
         city_offline_status.text = "ХОД БОТА…"
-        city_offline_refresh_armor("player")
+        _city_offline_refresh_armor("player")
         city_offline_busy = true
         _city_offline_refresh()
         _city_offline_bot_turn()
     else:
         city_offline_turn = "player"
         city_offline_status.text = "ТВОЙ ХОД"
-        _city_offline_refresh_armor("bot")
+        __city_offline_refresh_armor("bot")
         _city_offline_refresh()
 
-func _city_offline_refresh_armor(team: String) -> void:
+func __city_offline_refresh_armor(team: String) -> void:
     for key in city_offline_units.keys():
         var unit: Dictionary = city_offline_units[key]
         if unit.get("team")!=team:
@@ -386,7 +386,7 @@ func _city_offline_bot_turn() -> void:
             var target: Dictionary = city_offline_units.get(to_key,{})
             if target.is_empty():
                 continue
-            var parts := to_key.split(",")
+            var parts: PackedStringArray = str(to_key).split(",")
             if _city_offline_is_legal(source,int(parts[0]),int(parts[1]),true):
                 attacks.append([from_key,to_key])
     if not attacks.is_empty():
@@ -407,13 +407,13 @@ func _city_offline_bot_turn() -> void:
             var chosen: Array = moves[randi_range(0,moves.size()-1)]
             var source: Dictionary = city_offline_units[str(chosen[0])]
             city_offline_units.erase(str(chosen[0]))
-            var parts := str(chosen[1]).split(",")
+            var parts: PackedStringArray = str(chosen[1]).split(",")
             source["col"] = int(parts[0])
             source["row"] = int(parts[1])
             city_offline_units[str(chosen[1])] = source
             _city_offline_log("Бот переместил %s на %s." % [str(source.get("name","Фигура")),_city_offline_coord(int(parts[0]),int(parts[1]))])
     if city_offline_active:
-        _city_offline_refresh_armor("bot")
+        __city_offline_refresh_armor("bot")
     city_offline_busy = false
     city_offline_turn = "player"
     city_offline_status.text = "ТВОЙ ХОД"
