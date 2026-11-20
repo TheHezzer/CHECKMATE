@@ -1,5 +1,5 @@
 name: CHECKMATE v98 — launch directly into main menu and visual review
-# v97 enlarges the central figure and left cards, and lowers figure selection buttons
+# v98 skips the campaign intro and opens the main menu automatically
 # v76 randomizes local test colors and adds a manual self-play chess test
 # v78 updates Chess City-only match rewards and economy isolation
 # v79 redesigns figure research as connected current/locked level cards
