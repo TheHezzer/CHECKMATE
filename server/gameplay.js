@@ -129,7 +129,8 @@ function makeInitialBoard(players){
 export function createGameState(match){
   const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,remainingPieces:2}));
   const whiteStart=players.find(p=>p.playerId===match.startingPlayerId&&p.team==="white")||players.find(p=>p.team==="white");
-  const blackStart=players.find(p=>p.team==="black"&&p.playerId!==whiteStart?.playerId)||players.find(p=>p.team==="black");
+  const blackPlayers=players.filter(p=>p.team==="black");
+  const blackStart=blackPlayers.length?blackPlayers[crypto.randomInt(0,blackPlayers.length)]:null;
   return {
     matchId:match.id,mode:match.mode,createdAt:Date.now(),status:"active",result:null,winnerTeam:null,
     players,board:makeInitialBoard(players),activeTeam:"white",activePlayerId:whiteStart?.playerId||"",
@@ -192,7 +193,7 @@ export function passGameTurn(match,playerId){
   }else{
     finishTurn(state,state.activeTeam,player.slot);
   }
-  state.turn+=1;state.updatedAt=Date.now();
+  if (state.status === "active") state.updatedAt=Date.now();
   return{status:200,state:sanitizeState(state,playerId)};
 }
 export function sendTeamChat(match,playerId,message){
