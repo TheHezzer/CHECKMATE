@@ -69,6 +69,7 @@ new_result = old_result + '''
             status_label.text += "\\nТВОЯ НАГРАДА: +%d XP • +%d ЗЛОТЫХ • КАЧЕСТВО %d%%" % [int(reward.get("xp", 0)), int(reward.get("zloty", 0)), int(reward.get("accuracy", 0))]
             if not account_token.is_empty():
                 _send_matchmaking_request("city_profile", "/city/profile", HTTPClient.METHOD_GET)
+'''
     if old_result not in s:
         raise SystemExit("Missing match reward display anchor")
     s = s.replace(old_result, new_result, 1)
