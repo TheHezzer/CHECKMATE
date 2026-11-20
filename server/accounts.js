@@ -3,6 +3,30 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
+const CITY_PIECES = {
+  "Пешка": { xp: 0, zloty: 0 },
+  "Конь": { xp: 300, zloty: 900 },
+  "Слон": { xp: 400, zloty: 1100 },
+  "Ладья": { xp: 500, zloty: 1200 },
+  "Ферзь": { xp: 1200, zloty: 3000 },
+  "Король": { xp: 1000, zloty: 2600 }
+};
+const CITY_SKINS = {
+  "Дерево": { xp: 0, zloty: 0 },
+  "Мрамор": { xp: 250, zloty: 1000 },
+  "Обсидиан": { xp: 500, zloty: 2000 },
+  "Сталь": { xp: 400, zloty: 1800 },
+  "Аниме": { xp: 700, zloty: 2500 }
+};
+function ensureCity(account) {
+  if (!account.city || typeof account.city !== "object") account.city = {};
+  const city = account.city;
+  if (!city.wallet) city.wallet = { zloty: 12750, xp: 850, gambits: 0 };
+  if (!Array.isArray(city.unlockedPieces)) city.unlockedPieces = ["Пешка"];
+  if (!Array.isArray(city.ownedPieces)) city.ownedPieces = ["Пешка"];
+  if (!Array.isArray(city.ownedSkins)) city.ownedSkins = ["Дерево"];
+  return city;
+}
 
 function safeEqual(a, b) {
   const left = Buffer.from(a);
@@ -43,6 +67,7 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
       const parsed = JSON.parse(await fs.readFile(dataFile, "utf8"));
       if (!Array.isArray(parsed)) throw new Error("INVALID_ACCOUNT_DATABASE");
       accounts = parsed;
+      for (const account of accounts) ensureCity(account);
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
       accounts = [];
@@ -111,6 +136,7 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
       losses: 0,
       draws: 0,
       matches: 0,
+      city: { wallet: { zloty: 12750, xp: 850, gambits: 0 }, unlockedPieces: ["Пешка"], ownedPieces: ["Пешка"], ownedSkins: ["Дерево"] },
       createdAt: new Date().toISOString()
     };
     accounts.push(account);
@@ -136,6 +162,69 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return account ? { status: 200, body: { account: publicProfile(account) } } : { status: 401, body: { error: "UNAUTHORIZED" } };
   }
 
+  function cityPayload(account) {
+    const city = ensureCity(account);
+    return {
+      wallet: { ...city.wallet },
+      unlockedPieces: [...city.unlockedPieces],
+      ownedPieces: [...city.ownedPieces],
+      ownedSkins: [...city.ownedSkins],
+      pieceCatalog: Object.fromEntries(Object.entries(CITY_PIECES).map(([name,cost])=>[name,{...cost,unlocked:city.unlockedPieces.includes(name),owned:city.ownedPieces.includes(name)}])),
+      skinCatalog: Object.fromEntries(Object.entries(CITY_SKINS).map(([name,cost])=>[name,{...cost,owned:city.ownedSkins.includes(name)}]))
+    };
+  }
+
+  async function cityProfile(token) {
+    await load();
+    const account = verifyToken(token);
+    return account ? { status: 200, body: { city: cityPayload(account) } } : { status: 401, body: { error: "UNAUTHORIZED" } };
+  }
+
+  async function cityUnlockPiece(token, piece) {
+    await load();
+    const account = verifyToken(token);
+    if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
+    const city = ensureCity(account), cost = CITY_PIECES[String(piece)];
+    if (!cost) return { status: 400, body: { error: "UNKNOWN_PIECE" } };
+    if (city.unlockedPieces.includes(piece)) return { status: 409, body: { error: "PIECE_ALREADY_UNLOCKED", city: cityPayload(account) } };
+    if (city.wallet.xp < cost.xp) return { status: 409, body: { error: "NOT_ENOUGH_XP", required: cost.xp, available: city.wallet.xp } };
+    city.wallet.xp -= cost.xp;
+    city.unlockedPieces.push(piece);
+    await persist();
+    return { status: 200, body: { city: cityPayload(account), unlocked: piece } };
+  }
+
+  async function cityPurchasePiece(token, piece) {
+    await load();
+    const account = verifyToken(token);
+    if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
+    const city = ensureCity(account), cost = CITY_PIECES[String(piece)];
+    if (!cost) return { status: 400, body: { error: "UNKNOWN_PIECE" } };
+    if (!city.unlockedPieces.includes(piece)) return { status: 409, body: { error: "PIECE_LOCKED" } };
+    if (city.ownedPieces.includes(piece)) return { status: 409, body: { error: "PIECE_ALREADY_OWNED", city: cityPayload(account) } };
+    if (city.wallet.zloty < cost.zloty) return { status: 409, body: { error: "NOT_ENOUGH_ZLOTY", required: cost.zloty, available: city.wallet.zloty } };
+    city.wallet.zloty -= cost.zloty;
+    city.ownedPieces.push(piece);
+    await persist();
+    return { status: 200, body: { city: cityPayload(account), purchased: piece } };
+  }
+
+  async function cityPurchaseSkin(token, skin) {
+    await load();
+    const account = verifyToken(token);
+    if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
+    const city = ensureCity(account), cost = CITY_SKINS[String(skin)];
+    if (!cost) return { status: 400, body: { error: "UNKNOWN_SKIN" } };
+    if (city.ownedSkins.includes(skin)) return { status: 409, body: { error: "SKIN_ALREADY_OWNED", city: cityPayload(account) } };
+    if (city.wallet.xp < cost.xp) return { status: 409, body: { error: "NOT_ENOUGH_XP", required: cost.xp, available: city.wallet.xp } };
+    if (city.wallet.zloty < cost.zloty) return { status: 409, body: { error: "NOT_ENOUGH_ZLOTY", required: cost.zloty, available: city.wallet.zloty } };
+    city.wallet.xp -= cost.xp;
+    city.wallet.zloty -= cost.zloty;
+    city.ownedSkins.push(skin);
+    await persist();
+    return { status: 200, body: { city: cityPayload(account), purchasedSkin: skin } };
+  }
+
   async function leaderboard(limit = 50) {
     await load();
     const rows = [...accounts]
@@ -145,5 +234,5 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return rows;
   }
 
-  return { register, login, me, leaderboard };
+  return { register, login, me, leaderboard, cityProfile, cityUnlockPiece, cityPurchasePiece, cityPurchaseSkin };
 }
