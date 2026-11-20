@@ -116,17 +116,29 @@ test("matched players receive private session tokens and can use the authoritati
  assert.equal(denied.status,401);
 }));
 
-test("authenticated Classic queue does not charge for any unlocked figure",async()=>withServer(async base=>{
+test("Classic queue charges the consumable pawn-plus-knight bundle and refunds it on cancellation",async()=>withServer(async base=>{
  const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"classicbuyer",password:"securepass123"})}).then(r=>r.json());
  const headers={"content-type":"application/json","authorization":"Bearer "+registered.token};
  const before=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
  assert.equal(before.city.wallet.zloty,12750);
- const queued=await fetch(base+"/matchmaking/queue",{method:"POST",headers,body:JSON.stringify({playerId:"local-fake-id",playerName:"Buyer",piece:"Ферзь",mode:"reserve_test",rating:1000})}).then(r=>r.json());
+ const queued=await fetch(base+"/matchmaking/queue",{method:"POST",headers,body:JSON.stringify({playerId:"local-fake-id",playerName:"Buyer",piece:"Конь",mode:"reserve_test",rating:1000})}).then(r=>r.json());
  assert.equal(queued.status,"waiting");
  const afterQueue=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
- assert.equal(afterQueue.city.wallet.zloty,12750);
+ assert.equal(afterQueue.city.wallet.zloty,12720);
  const cancelled=await fetch(base+"/matchmaking/queue/"+queued.ticket+"/cancel",{method:"POST",headers}).then(r=>r.json());
  assert.equal(cancelled.status,"cancelled");
  const afterCancel=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
  assert.equal(afterCancel.city.wallet.zloty,12750);
+}));
+test("Classic entry bundle prices are consistent for every second-piece role",async()=>withServer(async base=>{
+ const roles={"Конь":30,"Слон":35,"Ладья":40,"Король":45,"Ферзь":55};
+ for(const [piece,cost] of Object.entries(roles)){
+   const name="price_"+piece.toLowerCase();
+   const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:name,password:"securepass123"})}).then(r=>r.json());
+   const headers={"content-type":"application/json","authorization":"Bearer "+registered.token};
+   const queued=await fetch(base+"/matchmaking/queue",{method:"POST",headers,body:JSON.stringify({piece,mode:"price_"+name,rating:1000})}).then(r=>r.json());
+   assert.equal(queued.status,"waiting");
+   const profile=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
+   assert.equal(profile.city.wallet.zloty,12750-cost);
+ }
 }));
