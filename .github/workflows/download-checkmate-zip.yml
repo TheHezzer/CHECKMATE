@@ -286,8 +286,9 @@ jobs:
         with:
           name: CHECKMATE-visual-review-v97
           path: |
-            CHECKMATE_main_menu_review.png
-            CHECKMATE_startup_review.mp4
+            CHECKMATE_intro_review.png
+            CHECKMATE_after_continue_review.png
+            CHECKMATE_after_continue_review.mp4
             visual-run.log
           if-no-files-found: error
           retention-days: 14
