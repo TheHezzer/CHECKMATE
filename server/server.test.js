@@ -106,8 +106,20 @@ test("matched players receive private session tokens and can use the authoritati
  assert.equal(stateResponse.status,200);
  const state=await stateResponse.json();
  assert.equal(state.activeTeam,"white");
- assert.equal(state.activePlayerId,matched.startingPlayerId);
+ assert.equal(state.activePlayerId,"");
+ assert.ok(state.openingVote);
+ assert.equal(state.teamClocks.white,600000);
+ assert.equal(state.teamClocks.black,600000);
  assert.equal(state.board.length,32);
+ const whitePlayers=matched.players.filter(p=>p.team==="white").slice(0,5);
+ for(const voter of whitePlayers){
+   const voterSession=await fetch(base+"/matchmaking/queue/"+ticketsByPlayer.get(voter.playerId)).then(r=>r.json());
+   const vote=await fetch(base+"/matches/"+matched.matchId+"/opening-vote",{method:"POST",headers:{"content-type":"application/json","x-player-session":voterSession.playerSessionToken},body:JSON.stringify({candidatePlayerId:starter.playerId})});
+   assert.equal(vote.status,200);
+ }
+ const votedState=await fetch(base+"/matches/"+matched.matchId+"/state",{headers:{"x-player-session":starterSession.playerSessionToken}}).then(r=>r.json());
+ assert.equal(votedState.activePlayerId,starter.playerId);
+ assert.equal(votedState.openingVote,null);
  const move=await fetch(base+"/matches/"+matched.matchId+"/move",{method:"POST",headers:{"content-type":"application/json","x-player-session":starterSession.playerSessionToken},body:JSON.stringify({fromFile:starter.slot,fromRow:6,toFile:starter.slot,toRow:5})});
  assert.equal(move.status,200);
  const after=await move.json();
