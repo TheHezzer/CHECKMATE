@@ -49,3 +49,13 @@ Set `PORT` if the hosting platform supplies a different port.
 ## Network requirements
 
 The matchmaking service currently returns the selected host's address and port; it does not relay game traffic. The player returned as room host must be reachable by ENet on UDP port 24567. A phone behind carrier NAT or a home router without port forwarding may not be reachable. Public matchmaking alone does not solve mobile NAT traversal; a relay or dedicated authoritative game server is still required.
+
+
+## Администратор CHECKMATE
+
+Для защищённого администраторского входа задай на сервере переменные окружения:
+
+- `CHECKMATE_ADMIN_USERNAME=TheHezzer`
+- `CHECKMATE_ADMIN_PASSWORD` — длинный уникальный пароль администратора (не публикуй его в репозитории и не встраивай в клиент игры).
+
+Регистрация ника администратора разрешается только с этим паролем. При входе сервер выдаёт `isAdmin: true` в профиле. Обычный игрок не может получить административные права, просто выбрав такой ник. Выдача ресурсов выполняется серверным маршрутом `POST /admin/grant` и требует действительный токен администратора. Поддерживаются злотые, XP и гамбиты; для каждого ресурса действует предел 1 000 000 за один запрос.
