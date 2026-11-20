@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: checkmate-online-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    plan: starter
+    disk:
+      name: checkmate-data
+      mountPath: /opt/render/project/src/server/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CHECKMATE_DATA_FILE
+        value: /opt/render/project/src/server/data/accounts.json
+      - key: CHECKMATE_TOKEN_SECRET
+        generateValue: true
