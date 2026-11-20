@@ -276,7 +276,9 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     return true;
   }
 
-  async function awardMatchById(players, winnerTeam) {
+  async function awardMatchById(players, winnerTeam, mode = "classic") {
+    // RPG resources belong exclusively to Chess City; classic chess stays economy-neutral.
+    if (!/city|город|шахматный/i.test(String(mode || ""))) return [];
     await load();
     const results = [];
     for (const player of players || []) {
