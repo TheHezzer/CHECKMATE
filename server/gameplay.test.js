@@ -212,7 +212,7 @@ test("team classic completes a full Fool's Mate game with checkmate detection",(
  play("white-5",5,6,5,5);
  play("black-4",4,1,4,3);
  play("white-6",6,6,6,4);
- play("black-3",3,0,7,4);
+ play("black-6",3,0,7,4);
  assert.equal(match.game.status,"finished");
  assert.equal(match.game.result,"checkmate");
  assert.equal(match.game.winnerTeam,"black");
@@ -237,7 +237,7 @@ test("team voting completes a full Fool's Mate game after bot teammates approve 
  play("white-5",5,6,5,5);
  play("black-4",4,1,4,3);
  play("white-6",6,6,6,4);
- play("black-3",3,0,7,4);
+ play("black-6",3,0,7,4);
  assert.equal(match.game.status,"finished");
  assert.equal(match.game.result,"checkmate");
  assert.equal(match.game.winnerTeam,"black");
