@@ -135,10 +135,37 @@ func _run() -> void:
     _check(growth != null and unlock != null and not growth.get_global_rect().intersects(unlock.get_global_rect()), "research growth text does not overlap unlock button")
     _check(game.progression_panel.visible, "piece research screen opens")
 
+    # Exercise every visible stat-upgrade button for every chess figure.
+    game.piece_progression.clear()
+    game.balances["xp"] = 1000000
+    game.balances["zloty"] = 1000000
+    for piece_name in game.PIECES:
+        game._open_piece_progression(str(piece_name))
+        for stat_name in ["health", "armor", "damage"]:
+            var upgrade_entry: Dictionary = game.progression_upgrade_buttons[stat_name]
+            var upgrade_button: Button = upgrade_entry["button"]
+            var before_levels: Dictionary = game._piece_progress_data(str(piece_name)).get("levels", {}).duplicate(true)
+            upgrade_button.emit_signal("pressed")
+            await process_frame
+            var after_levels: Dictionary = game._piece_progress_data(str(piece_name)).get("levels", {})
+            _check(int(after_levels.get(stat_name, 0)) == int(before_levels.get(stat_name, 0)) + 1, "%s %s upgrade button increases its stat" % [str(piece_name), stat_name])
+    _check(game.piece_progression.size() == game.PIECES.size(), "all six chess figures have independent progression data")
+
     # Chess City hub, deployment and offline combat are exercised separately.
     game._return_to_menu()
     game._open_city_screen()
     _check(game.castle_hub_battle_panel.visible, "Chess City castle hub opens")
+    game.castle_hub_state = {"castle_level":1,"energy":150,"army":{},"energy_date":Time.get_date_string_from_system()}
+    game.balances["xp"] = 100000
+    game.balances["zloty"] = 100000
+    game.balances["chessmatites"] = 1000
+    game._refresh_castle_hub_battle_screen()
+    game.castle_hub_upgrade_button.emit_signal("pressed")
+    _check(game.castle_hub_state.has("upgrade_finish_at") and int(game.castle_hub_state.get("upgrade_target_level",0)) == 2, "castle upgrade button starts timed level-two construction")
+    var gambits_before_speedup := int(game.balances["chessmatites"])
+    game.castle_hub_speedup_button.emit_signal("pressed")
+    _check(int(game.castle_hub_state.get("castle_level",1)) == 2 and not game.castle_hub_state.has("upgrade_finish_at"), "castle Gambit speed-up completes construction instantly")
+    _check(int(game.balances["chessmatites"]) < gambits_before_speedup, "castle speed-up deducts Gambits")
     game._open_castle_hub_deployment()
     _check(game.castle_hub_deploy_panel.visible, "Chess City army deployment opens")
     game._close_castle_hub_deployment()
