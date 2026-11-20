@@ -1,5 +1,5 @@
 from pathlib import Path
-p = Path("scripts/main.gd")
+p = Path(__file__).resolve().parent.parent / "scripts" / "main.gd"
 s = p.read_text(encoding="utf-8")
 def rep(old, new, name):
     global s
