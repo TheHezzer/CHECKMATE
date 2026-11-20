@@ -38,6 +38,7 @@ permissions:
 jobs:
   build-project:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -268,13 +269,6 @@ jobs:
           unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v97.zip"
           mkdir -p builds
           cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v97.zip" builds/CHECKMATE_classic_v97.zip
-
-      - name: Save build ZIP in repository
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Save CHECKMATE classic v97 build"
-          branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v97.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
