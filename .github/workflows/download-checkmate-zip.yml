@@ -1,6 +1,6 @@
-name: Build CHECKMATE classic v65 — profile and admin tools
-# v65 profile and admin controls
-# v65 bot test fix
+name: Build CHECKMATE classic v66 — profile and admin tools
+# v66 profile and admin controls
+# v66 bot test fix
 # Rebuild after correcting the v46 patch path.
 
 concurrency:
@@ -153,8 +153,10 @@ jobs:
           python "$project_dir/patches/fix_text_alignment_and_account_layout_v63.py"
           cp patches/add_standard_chess_1v1_mode_v64.py "$project_dir/patches/add_standard_chess_1v1_mode_v64.py"
           python "$project_dir/patches/add_standard_chess_1v1_mode_v64.py"
-          cp patches/fix_menu_account_mode_layout_v65.py "$project_dir/patches/fix_menu_account_mode_layout_v65.py"
-          python "$project_dir/patches/fix_menu_account_mode_layout_v65.py"
+          cp patches/fix_menu_account_mode_layout_v66.py "$project_dir/patches/fix_menu_account_mode_layout_v66.py"
+          python "$project_dir/patches/fix_menu_account_mode_layout_v66.py"
+          cp patches/add_piece_progression_wallet_v66.py "$project_dir/patches/add_piece_progression_wallet_v66.py"
+          python "$project_dir/patches/add_piece_progression_wallet_v66.py"
 
           GODOT_VERSION="4.4.1"
           curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o godot.zip
@@ -172,23 +174,23 @@ jobs:
             exit 1
           fi
 
-          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v65.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
-          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v65.zip"
+          (cd patched && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v66.zip" "$(basename "$project_dir")" -x "*/.godot/*" "*/.godot")
+          unzip -t "$GITHUB_WORKSPACE/CHECKMATE_classic_v66.zip"
           mkdir -p builds
-          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v65.zip" builds/CHECKMATE_classic_v65.zip
+          cp "$GITHUB_WORKSPACE/CHECKMATE_classic_v66.zip" builds/CHECKMATE_classic_v66.zip
 
       - name: Save build ZIP in repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Save CHECKMATE classic v65 build"
+          commit_message: "Save CHECKMATE classic v66 build"
           branch: splash-update
-          file_pattern: builds/CHECKMATE_classic_v65.zip
+          file_pattern: builds/CHECKMATE_classic_v66.zip
 
       - name: Upload updated CHECKMATE project
         uses: actions/upload-artifact@v4
         with:
-          name: CHECKMATE-classic-v65
-          path: CHECKMATE_classic_v65.zip
+          name: CHECKMATE-classic-v66
+          path: CHECKMATE_classic_v66.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
