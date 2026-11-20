@@ -129,6 +129,7 @@ func _run() -> void:
                 var fc := int(piece.get_meta("col"))
                 var fr := int(piece.get_meta("row"))
                 var kind := str(piece.get_meta("kind"))
+                game.selected_game_piece = piece
                 for tc in range(8):
                     for tr in range(8):
                         if fc == tc and fr == tr:
