@@ -56,6 +56,8 @@ func _run() -> void:
     game._process_classic_move(6, 7, 5, 5)
     _check(game._get_game_piece_at(5, 5) != null and game.current_team == "black", "white knight g1-f3 moves legally")
 
+    game.local_self_play_active = true
+    game.local_bot_test_active = false
     game._start_game("Стандартные шахматы")
     game._process_classic_move(5, 6, 5, 5)
     game._process_classic_move(4, 1, 4, 3)
@@ -175,6 +177,8 @@ func _run() -> void:
     game._process_classic_move(6, 6, 6, 4)
     game._process_classic_move(3, 0, 7, 4)
     _check(game.game_over and game.match_result_panel.visible, "completed standard match opens the terminal result screen after checkmate")
+    game.local_self_play_active = false
+    game.local_bot_test_active = false
 
     # UI navigation is tested by invoking the same callbacks connected to buttons.
     game._return_to_menu()
