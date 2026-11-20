@@ -90,3 +90,40 @@ test("team voting is unavailable in the standard classic mode",()=>{
  const f=fixture();f.mode="classic";const match={players:f.players,game:createGameState(f)};
  assert.equal(proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5}).error,"VOTING_MODE_REQUIRED");
 });
+
+test("vote timeout accepts the option with more votes even without all teammates voting",()=>{
+ const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const starter=match.game.activePlayerId;
+ const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
+ proposeGameMove(match,starter,move);
+ for(const id of ["white-1","white-2","white-3","white-7"])assert.equal(castGameVote(match,id,"approve").status,200);
+ for(const id of ["white-4","white-5","white-6"])assert.equal(castGameVote(match,id,"reject").status,200);
+ assert.ok(match.game.pendingVote);
+ match.game.pendingVote.expiresAt=Date.now()-1;
+ const state=getGameState(match,"white-1");
+ assert.equal(match.game.pendingVote,null);
+ assert.equal(match.game.board.find(p=>p.ownerPlayerId===starter&&p.kind==="P").row,5);
+ assert.equal(match.game.activeTeam,"black");
+ assert.equal(match.game.players.find(p=>p.playerId==="white-1").stats.correctVotes,1);
+});
+test("a tied vote at timeout rejects the proposal and passes the turn",()=>{
+ const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const starter=match.game.activePlayerId;
+ proposeGameMove(match,starter,{fromFile:0,fromRow:6,toFile:0,toRow:5});
+ for(const id of ["white-1","white-2","white-3"])castGameVote(match,id,"approve");
+ for(const id of ["white-4","white-5","white-6"])castGameVote(match,id,"reject");
+ match.game.pendingVote.expiresAt=Date.now()-1;
+ getGameState(match,"white-1");
+ assert.equal(match.game.pendingVote,null);
+ assert.equal(match.game.board.find(p=>p.ownerPlayerId===starter&&p.kind==="P").row,6);
+ assert.equal(match.game.activeTeam,"white");
+ assert.notEqual(match.game.activePlayerId,starter);
+});
+test("votes are closed after the 20-second deadline and are resolved on state refresh",()=>{
+ const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5});
+ match.game.pendingVote.expiresAt=Date.now()-1;
+ const result=castGameVote(match,"white-1","approve");
+ assert.equal(result.error,"VOTE_CLOSED");
+ assert.equal(match.game.pendingVote,null);
+});
