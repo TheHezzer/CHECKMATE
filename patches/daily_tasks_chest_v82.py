@@ -8,10 +8,10 @@ def replace_func(source: str, name: str, replacement: str) -> str:
     start = source.find(marker)
     if start < 0:
         raise SystemExit("Function not found: " + name)
-    next_func = source.find("\\nfunc ", start + len(marker))
+    next_func = source.find("\nfunc ", start + len(marker))
     if next_func < 0:
-        return source[:start] + replacement.rstrip() + "\\n"
-    return source[:start] + replacement.rstrip() + "\\n" + source[next_func + 1:]
+        return source[:start] + replacement.rstrip() + "\n"
+    return source[:start] + replacement.rstrip() + "\n" + source[next_func + 1:]
 
 # Persistent daily challenge state.
 if "var daily_challenges: Dictionary = {}" not in s:
@@ -26,20 +26,20 @@ var daily_task_progress_labels: Dictionary = {}
 """, 1)
 
 # Build the daily screen with the rest of the UI.
-anchor = "    _build_shop_screen()\\n    _build_onboarding_screen()"
+anchor = "    _build_shop_screen()\n    _build_onboarding_screen()"
 if anchor not in s:
     raise SystemExit("Daily screen build anchor missing")
-s = s.replace(anchor, "    _build_shop_screen()\\n    _build_daily_tasks_screen()\\n    _build_onboarding_screen()", 1)
+s = s.replace(anchor, "    _build_shop_screen()\n    _build_daily_tasks_screen()\n    _build_onboarding_screen()", 1)
 
 # Persist and restore challenge progress with the existing economy profile.
-anchor = '    cfg.set_value("progress", "piece_progression", piece_progression)\\n'
+anchor = '    cfg.set_value("progress", "piece_progression", piece_progression)\n'
 if anchor not in s:
     raise SystemExit("Daily save insertion anchor missing")
-s = s.replace(anchor, anchor + '    cfg.set_value("daily", "state", daily_challenges)\\n', 1)
-anchor = '        piece_progression = cfg.get_value("progress", "piece_progression", piece_progression)\\n'
+s = s.replace(anchor, anchor + '    cfg.set_value("daily", "state", daily_challenges)\n', 1)
+anchor = '        piece_progression = cfg.get_value("progress", "piece_progression", piece_progression)\n'
 if anchor not in s:
     raise SystemExit("Daily load insertion anchor missing")
-s = s.replace(anchor, anchor + '        daily_challenges = cfg.get_value("daily", "state", daily_challenges)\\n', 1)
+s = s.replace(anchor, anchor + '        daily_challenges = cfg.get_value("daily", "state", daily_challenges)\n', 1)
 
 # Turn the shop's daily chest card into the entry point for tasks and rewards.
 anchor = '        action.pressed.connect(_shop_coming_soon.bind(str(item["kind"])))'
@@ -73,7 +73,7 @@ func _daily_ensure_state() -> void:
         var task_id := str(task["id"])
         progress[task_id] = maxi(0, int(progress.get(task_id, 0)))
     daily_challenges["progress"] = progress
-    if not daily_challenges.get("claimed", []) is Array:
+    if not (daily_challenges.get("claimed", []) is Array):
         daily_challenges["claimed"] = []
     daily_challenges["chest_claimed"] = bool(daily_challenges.get("chest_claimed", false))
 
@@ -199,10 +199,10 @@ func _claim_daily_chest() -> void:
         var rare_skin := "Лунное серебро"
         if owned_skins.has(rare_skin):
             balances["zloty"] = int(balances["zloty"]) + 900
-            message += "\\nРедкий скин уже есть — вместо него начислено 900 злотых."
+            message += "\nРедкий скин уже есть — вместо него начислено 900 злотых."
         else:
             owned_skins.append(rare_skin)
-            message += "\\nРЕДКАЯ НАГРАДА: навсегда открыт скин «Лунное серебро»!"
+            message += "\nРЕДКАЯ НАГРАДА: навсегда открыт скин «Лунное серебро»!"
     daily_challenges["chest_claimed"] = true
     _save_economy()
     _refresh_daily_tasks_screen()
@@ -228,13 +228,13 @@ func _daily_record_research_upgrade() -> void:
 
 """
 if "func _build_daily_tasks_screen() -> void:" not in s:
-    anchor = "\\nfunc _open_city_screen() -> void:"
+    anchor = "\nfunc _open_city_screen() -> void:"
     if anchor not in s:
         raise SystemExit("Daily screen insertion point missing")
-    s = s.replace(anchor, "\\n" + daily_ui + anchor, 1)
+    s = s.replace(anchor, "\n" + daily_ui + anchor, 1)
 
 # Record completed matches only in Chess City; ordinary classic chess stays separate.
-result_anchor = '    var winner := str(data.get("winnerTeam", ""))\\n'
+result_anchor = '    var winner := str(data.get("winnerTeam", ""))\n'
 if result_anchor not in s:
     raise SystemExit("Match result winner anchor missing")
 s = s.replace(result_anchor, result_anchor + '''    var active_mode := str(selected_mode).to_lower()
@@ -246,14 +246,14 @@ s = s.replace(result_anchor, result_anchor + '''    var active_mode := str(selec
 upgrade_start = s.find("func _upgrade_piece_stat(")
 if upgrade_start < 0:
     raise SystemExit("Research upgrade function missing")
-upgrade_end = s.find("\\nfunc ", upgrade_start + 1)
+upgrade_end = s.find("\nfunc ", upgrade_start + 1)
 if upgrade_end < 0:
     upgrade_end = len(s)
 upgrade_func = s[upgrade_start:upgrade_end]
-save_anchor = "    _save_economy()\\n    progression_status_label.text"
+save_anchor = "    _save_economy()\n    progression_status_label.text"
 if save_anchor not in upgrade_func:
     raise SystemExit("Research upgrade completion anchor missing")
-upgrade_func = upgrade_func.replace(save_anchor, "    _save_economy()\\n    _daily_record_research_upgrade()\\n    progression_status_label.text", 1)
+upgrade_func = upgrade_func.replace(save_anchor, "    _save_economy()\n    _daily_record_research_upgrade()\n    progression_status_label.text", 1)
 s = s[:upgrade_start] + upgrade_func + s[upgrade_end:]
 
 p.write_text(s, encoding="utf-8")
