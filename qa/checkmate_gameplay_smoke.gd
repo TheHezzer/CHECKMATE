@@ -125,6 +125,8 @@ func _run() -> void:
     game._start_game("Стандартные шахматы")
     game.standard_chess_mode_active = true
     game.local_bot_test_active = true
+    game.local_user_team = "white"
+    game.local_user_slot = 1
     game.team_next_player = {"white": 1, "black": 1}
     game.active_teammate = 1
     if game.local_clock_timer:
