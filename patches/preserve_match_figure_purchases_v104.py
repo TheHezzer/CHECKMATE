@@ -73,5 +73,26 @@ rep('''func _start_game(mode_name: String) -> void:
     game_over = false
 ''', "consume selected figure on actual match start")
 
+
+# The menu's SubViewport preview must never sit over the live chessboard.
+rep('''    menu_panel.visible = false
+    if online_panel:
+        online_panel.visible = false
+    game_panel.visible = true
+''', '''    menu_panel.visible = false
+    if preview_container:
+        preview_container.visible = false
+    if online_panel:
+        online_panel.visible = false
+    game_panel.visible = true
+''', "hide menu figure preview during a match")
+rep('''    menu_panel.visible = true
+    local_bot_test_active = false
+''', '''    menu_panel.visible = true
+    if preview_container:
+        preview_container.visible = true
+    local_bot_test_active = false
+''', "restore menu figure preview after a match")
+
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v104: purchased match figures now persist across menus/restarts and are consumed only when a match starts.")
