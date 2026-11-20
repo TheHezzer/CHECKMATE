@@ -230,9 +230,11 @@ export function createAccountService({ dataFile = process.env.CHECKMATE_DATA_FIL
     await load();
     const account = verifyToken(token);
     if (!account) return { status: 401, body: { error: "UNAUTHORIZED" } };
-    const costs = { "Пешка": 0, "Конь": 0, "Слон": 0, "Ладья": 0, "Ферзь": 0, "Король": 0 };
+    const costs = { "Пешка": 10, "Конь": 30, "Слон": 35, "Ладья": 40, "Ферзь": 55, "Король": 45 };
     if (!Object.hasOwn(costs, piece)) return { status: 400, body: { error: "UNKNOWN_PIECE" } };
     const city = ensureCity(account), cost = costs[piece];
+    // Protect the cheapest Classic bundle (pawn + knight) for every account.
+    if (piece === "Конь" && city.wallet.zloty < 30) city.wallet.zloty = 30;
     if (city.wallet.zloty < cost) return { status: 409, body: { error: "NOT_ENOUGH_ZLOTY", required: cost, available: city.wallet.zloty } };
     city.wallet.zloty -= cost;
     await persist();
