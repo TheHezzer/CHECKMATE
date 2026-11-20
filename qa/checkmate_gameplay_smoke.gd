@@ -255,7 +255,7 @@ func _run() -> void:
     }
     var win_zloty_before := int(game.balances["zloty"])
     var win_xp_before := int(game.balances["xp"])
-    var spins_before := game.roulette_spins
+    var spins_before: int = int(game.roulette_spins)
     game._city_offline_attack("0,6","0,1")
     _check(int(game.balances["zloty"]) == win_zloty_before + 300, "Chess City victory awards 300 Zloty")
     _check(int(game.balances["xp"]) == win_xp_before + 120, "Chess City victory awards 120 XP")
