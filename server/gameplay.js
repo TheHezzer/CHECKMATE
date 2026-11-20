@@ -29,7 +29,7 @@ function attacksSquare(board,piece,file,row) {
 function kingOf(board,team){return board.find(p=>p.team===team&&p.kind==="K")||null;}
 function inCheck(board,team){
   const king=kingOf(board,team); if(!king)return true;
-  return board.some(p=>p.team!===team && attacksSquare(board,p,king.file,king.row));
+  return board.some(p=>p.team!==team && attacksSquare(board,p,king.file,king.row));
 }
 function pseudoLegal(board,piece,toFile,toRow){
   if(!inside(toFile,toRow)||piece.file===toFile&&piece.row===toRow)return false;
