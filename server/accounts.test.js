@@ -5,9 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import { createMatchmakingServer } from "./server.js";
 
-async function withAccountServer(fn) {
+async function withAccountServer(fn, overrides = {}) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "checkmate-accounts-"));
-  const options = { dataFile: path.join(dir, "accounts.json"), tokenSecret: "test-secret-for-account-api" };
+  const options = { dataFile: path.join(dir, "accounts.json"), tokenSecret: "test-secret-for-account-api", ...overrides };
   const server = createMatchmakingServer(options);
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   const base = "http://127.0.0.1:" + server.address().port;
