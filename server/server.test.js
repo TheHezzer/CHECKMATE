@@ -52,3 +52,34 @@ test("overbooked piece offers waitlist status and exposes remaining slots",async
  assert.equal(polled.status,"waiting_piece_slot");
 }));
 
+
+test("Chess City keeps a separate XP unlock and permanent purchase inventory",async()=>withServer(async base=>{
+ const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"cityplayer",password:"securepass123"})}).then(r=>r.json());
+ const headers={"content-type":"application/json","authorization":"Bearer "+registered.token};
+ const initial=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
+ assert.deepEqual(initial.city.unlockedPieces,["Пешка"]);
+ assert.deepEqual(initial.city.ownedPieces,["Пешка"]);
+ const locked=await fetch(base+"/city/purchase-piece",{method:"POST",headers,body:JSON.stringify({piece:"Конь"})});
+ assert.equal(locked.status,409);
+ const unlock=await fetch(base+"/city/unlock-piece",{method:"POST",headers,body:JSON.stringify({piece:"Конь"})});
+ assert.equal(unlock.status,200);
+ assert.ok((await unlock.json()).city.unlockedPieces.includes("Конь"));
+ const purchase=await fetch(base+"/city/purchase-piece",{method:"POST",headers,body:JSON.stringify({piece:"Конь"})});
+ assert.equal(purchase.status,200);
+ const final=await purchase.json();
+ assert.ok(final.city.ownedPieces.includes("Конь"));
+ assert.equal(final.city.wallet.xp,550);
+ assert.equal(final.city.wallet.zloty,11850);
+}));
+test("Chess City skins remain locked until purchased with XP and zloty",async()=>withServer(async base=>{
+ const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"skinplayer",password:"securepass123"})}).then(r=>r.json());
+ const headers={"content-type":"application/json","authorization":"Bearer "+registered.token};
+ const initial=await fetch(base+"/city/profile",{headers}).then(r=>r.json());
+ assert.deepEqual(initial.city.ownedSkins,["Дерево"]);
+ const buy=await fetch(base+"/city/purchase-skin",{method:"POST",headers,body:JSON.stringify({skin:"Мрамор"})});
+ assert.equal(buy.status,200);
+ const city=(await buy.json()).city;
+ assert.ok(city.ownedSkins.includes("Мрамор"));
+ assert.equal(city.wallet.xp,600);
+ assert.equal(city.wallet.zloty,11750);
+}));
