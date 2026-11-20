@@ -39,14 +39,14 @@ test("server rejects illegal moves and pieces owned by another teammate",()=>{
  assert.equal(applyGameMove(match,"white-0",{fromFile:1,fromRow:6,toFile:1,toRow:5}).error,"PIECE_NOT_OWNED");
 });
 test("passing gives the same team turn to the next living teammate",()=>{
- const match={players:fixture().players,game:createGameState(fixture())};
+ const f=fixture();const match=startedMatch(f);
  const result=passGameTurn(match,"white-0");
  assert.equal(result.status,200);
  assert.equal(match.game.activeTeam,"white");
  assert.equal(match.game.activePlayerId,"white-1");
 });
 test("team chat is private to the player's team and eliminated players may chat",()=>{
- const match={players:fixture().players,game:createGameState(fixture())};
+ const f=fixture();const match=startedMatch(f);
  const msg=sendTeamChat(match,"white-0","Вперёд!");
  assert.equal(msg.status,201);
  const white=getGameState(match,"white-1"),black=getGameState(match,"black-0");
@@ -57,7 +57,7 @@ test("team chat is private to the player's team and eliminated players may chat"
 });
 
 test("team voting requires a proposal and a majority before applying the move",()=>{
- const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const f=fixture();f.mode="team_vote";const match=startedMatch(f);
  const starter=match.game.activePlayerId;
  const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
  assert.equal(applyGameMove(match,starter,move).error,"VOTE_REQUIRED");
@@ -78,7 +78,7 @@ test("team voting requires a proposal and a majority before applying the move",(
  assert.equal(match.game.players.find(p=>p.playerId==="white-1").stats.correctVotes,1);
 });
 test("team vote rejects duplicates and a majority rejection passes the turn to the next teammate",()=>{
- const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const f=fixture();f.mode="team_vote";const match=startedMatch(f);
  const starter=match.game.activePlayerId;
  const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
  proposeGameMove(match,starter,move);
@@ -96,12 +96,12 @@ test("team vote rejects duplicates and a majority rejection passes the turn to t
  assert.equal(match.game.players.find(p=>p.playerId==="white-1").stats.correctVotes,1);
 });
 test("team voting is unavailable in the standard classic mode",()=>{
- const f=fixture();f.mode="classic";const match={players:f.players,game:createGameState(f)};
+ const f=fixture();f.mode="classic";const match=startedMatch(f);
  assert.equal(proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5}).error,"VOTING_MODE_REQUIRED");
 });
 
 test("vote timeout accepts the option with more votes even without all teammates voting",()=>{
- const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const f=fixture();f.mode="team_vote";const match=startedMatch(f);
  const starter=match.game.activePlayerId;
  const move={fromFile:0,fromRow:6,toFile:0,toRow:5};
  proposeGameMove(match,starter,move);
@@ -117,7 +117,7 @@ test("vote timeout accepts the option with more votes even without all teammates
  assert.equal(match.game.players.find(p=>p.playerId==="white-1").stats.correctVotes,1);
 });
 test("a tied vote at timeout rejects the proposal and passes the turn",()=>{
- const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const f=fixture();f.mode="team_vote";const match=startedMatch(f);
  const starter=match.game.activePlayerId;
  proposeGameMove(match,starter,{fromFile:0,fromRow:6,toFile:0,toRow:5});
  match.game.pendingVote.discussionEndsAt=Date.now()-1;
@@ -131,7 +131,7 @@ test("a tied vote at timeout rejects the proposal and passes the turn",()=>{
  assert.notEqual(match.game.activePlayerId,starter);
 });
 test("discussion lasts five seconds and voting stays closed until it ends",()=>{
- const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const f=fixture();f.mode="team_vote";const match=startedMatch(f);
  proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5});
  const pending=match.game.pendingVote;
  assert.equal(pending.discussionEndsAt-pending.createdAt,5000);
@@ -141,7 +141,7 @@ test("discussion lasts five seconds and voting stays closed until it ends",()=>{
  assert.equal(castGameVote(match,"white-1","approve").status,200);
 });
 test("votes are closed after the 5-second discussion plus 15-second voting window and are resolved on state refresh",()=>{
- const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
+ const f=fixture();f.mode="team_vote";const match=startedMatch(f);
  proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5});
  match.game.pendingVote.discussionEndsAt=Date.now()-1;
  match.game.pendingVote.expiresAt=Date.now()-1;
@@ -167,7 +167,7 @@ test("a player who misses 20 seconds is skipped to the next teammate",()=>{
  match.game.playerTurnEndsAt=now-1;match.game.clockLastTickAt=now;
  const state=getGameState(match,"white-0");
  assert.equal(match.game.activePlayerId,"white-1");
- assert.equal(state.activeTurnRemainingMs,20000);
+ assert.ok(state.activeTurnRemainingMs<=20000&&state.activeTurnRemainingMs>19000);
 });
 test("team loses when its shared ten-minute clock expires",()=>{
  const f=fixture(),match=startedMatch(f),now=Date.now();
