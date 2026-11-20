@@ -246,8 +246,7 @@ jobs:
           fi
 
           if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y xvfb ffmpeg
+            timeout 120s sudo apt-get install -y --no-install-recommends xvfb ffmpeg
           fi
           Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
           XVFB_PID=$!
@@ -256,8 +255,8 @@ jobs:
           "$GODOT_BIN" --path "$project_dir" --windowed --resolution 1920x1080 > visual-run.log 2>&1 &
           GAME_PID=$!
           sleep 8
-          ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_main_menu_review.png
-          ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 8 CHECKMATE_startup_review.mp4
+          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_main_menu_review.png
+          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 8 CHECKMATE_startup_review.mp4
           kill "$GAME_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
           if grep -E "SCRIPT ERROR|Parse Error" visual-run.log; then
