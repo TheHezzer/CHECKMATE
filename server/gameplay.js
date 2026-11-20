@@ -127,7 +127,7 @@ function makeInitialBoard(players){
   return board;
 }
 export function createGameState(match){
-  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,remainingPieces:2}));
+  const players=match.players.map(p=>({playerId:p.playerId,name:p.name,team:p.team,slot:p.slot,secondPiece:p.secondPiece||p.piece,eliminated:false,remainingPieces:2,stats:{moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0}}));
   const whiteStart=players.find(p=>p.playerId===match.startingPlayerId&&p.team==="white")||players.find(p=>p.team==="white");
   const blackPlayers=players.filter(p=>p.team==="black");
   const blackStart=blackPlayers.length?blackPlayers[crypto.randomInt(0,blackPlayers.length)]:null;
@@ -144,7 +144,7 @@ function sanitizeState(state,viewerId){
     matchId:state.matchId,status:state.status,result:state.result,winnerTeam:state.winnerTeam,
     activeTeam:state.activeTeam,activePlayerId:state.activePlayerId,startingPlayerId:state.startingPlayerId,
     turn:state.turn,moveNumber:state.moveNumber,board:clone(state.board),
-    players:state.players.map(p=>({...p})),viewer:{playerId:viewerId,team:viewer?.team||null,eliminated:viewer?.eliminated??true},
+    players:state.players.map(p=>({...p,stats:{...(p.stats||{})}})),viewer:{playerId:viewerId,team:viewer?.team||null,eliminated:viewer?.eliminated??true},
     chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
   };
 }
@@ -158,21 +158,39 @@ export function applyGameMove(match,playerId,move){
   if(!piece||piece.ownerPlayerId!==playerId||piece.team!==state.activeTeam)return{status:403,error:"PIECE_NOT_OWNED"};
   if(!legalMove(state.board,piece,toFile,toRow))return{status:400,error:"ILLEGAL_MOVE"};
   const movingTeam=piece.team,from={file:fromFile,row:fromRow},target=at(state.board,toFile,toRow);
+  const movingKind=piece.kind;
+  const wasPromotion=movingKind==="P"&&(toRow===0||toRow===7);
+  const wasCastling=movingKind==="K"&&Math.abs(toFile-fromFile)===2;
   if(target)state.board.splice(state.board.indexOf(target),1);
   const oldFile=piece.file;piece.file=toFile;piece.row=toRow;piece.hasMoved=true;
   if(piece.kind==="K"&&Math.abs(toFile-oldFile)===2){
     const rookFrom=toFile>oldFile?7:0,rookTo=toFile>oldFile?toFile-1:toFile+1,rook=at(state.board,rookFrom,toRow);
     if(rook){rook.file=rookTo;rook.hasMoved=true;}
   }
-  if(piece.kind==="P"&&(toRow===0||toRow===7))piece.kind="Q";
-  state.history.push({playerId,team:movingTeam,from,to:{file:toFile,row:toRow},piece:LETTERS[piece.kind],captured:target?LETTERS[target.kind]:null,at:Date.now()});
+  if(wasPromotion)piece.kind="Q";
+  const opponent=movingTeam==="white"?"black":"white";
+  const givesCheck=inCheck(state.board,opponent);
+  const ownPlayer=state.players.find(p=>p.playerId===playerId);
+  if(ownPlayer){
+    const stats=ownPlayer.stats||(ownPlayer.stats={moves:0,captures:0,checks:0,checkmates:0,promotions:0,castlings:0,passes:0,qualityTotal:0,votes:0,correctVotes:0});
+    let quality=65;
+    if(target){stats.captures+=1;quality+=12;}
+    if(givesCheck){stats.checks+=1;quality+=10;}
+    if(wasPromotion){stats.promotions+=1;quality+=8;}
+    if(wasCastling){stats.castlings+=1;quality+=7;}
+    if((movingKind==="N"||movingKind==="B")&&from.row===(movingTeam==="white"?7:0)&&Math.abs(toFile-3.5)<=2)quality+=5;
+    if(attackedBy(state.board,toFile,toRow,opponent)&&!attackedBy(state.board,toFile,toRow,movingTeam))quality-=20;
+    stats.moves+=1;
+    stats.qualityTotal+=Math.max(0,Math.min(100,quality));
+  }
+  state.history.push({playerId,team:movingTeam,from,to:{file:toFile,row:toRow},piece:LETTERS[piece.kind],captured:target?LETTERS[target.kind]:null,check:givesCheck,at:Date.now()});
   state.moveNumber+=movingTeam==="black"?1:0;
   state.halfmoveClock=(piece.kind==="P"||target)?0:state.halfmoveClock+1;
   updateEliminations(state);state.updatedAt=Date.now();
-  const opponent=movingTeam==="white"?"black":"white";
   if(!hasLegalMove(state.board,opponent)){
     state.status="finished";state.result=inCheck(state.board,opponent)?"checkmate":"stalemate";
     state.winnerTeam=state.result==="checkmate"?movingTeam:"draw";
+    if(state.result==="checkmate"&&ownPlayer)ownPlayer.stats.checkmates=(ownPlayer.stats.checkmates||0)+1;
     state.activePlayerId="";
   }else{
     const current=state.players.find(p=>p.playerId===playerId);
@@ -186,6 +204,8 @@ export function passGameTurn(match,playerId){
   const player=state.players.find(p=>p.playerId===playerId);
   if(!player)return{status:404,error:"PLAYER_NOT_IN_MATCH"};
   state.passedThisTurn.push(playerId);
+  const passingPlayer=state.players.find(p=>p.playerId===playerId);
+  if(passingPlayer){passingPlayer.stats=passingPlayer.stats||{};passingPlayer.stats.passes=(passingPlayer.stats.passes||0)+1;}
   const eligible=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated&&!state.passedThisTurn.includes(p.playerId)).sort((a,b)=>a.slot-b.slot);
   if(eligible.length){
     const next=eligible.find(p=>p.slot>player.slot)||eligible[0];
