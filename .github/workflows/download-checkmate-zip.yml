@@ -249,7 +249,7 @@ jobs:
             exit 1
           fi
 
-          if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
+          if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1 || ! command -v xdotool >/dev/null 2>&1; then
             sudo apt-get update -qq
             timeout 1200s sudo apt-get install -y --no-install-recommends xvfb ffmpeg xdotool
           fi
@@ -261,17 +261,17 @@ jobs:
           GAME_PID=$!
           sleep 18
           timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_main_menu_v99.png
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 8 CHECKMATE_main_menu_v99.mp4
+          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 3 CHECKMATE_main_menu_v99.mp4
           xdotool mousemove 960 260 click 1
           sleep 5
           timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_party_modes_v99.png
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 8 CHECKMATE_party_modes_v99.mp4
+          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 3 CHECKMATE_party_modes_v99.mp4
           xdotool mousemove 380 400 click 1
           sleep 1
           xdotool mousemove 960 945 click 1
           sleep 5
           timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_preparation_v99.png
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 8 CHECKMATE_preparation_v99.mp4
+          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 3 CHECKMATE_preparation_v99.mp4
           kill "$GAME_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
           if grep -E "SCRIPT ERROR|Parse Error" visual-run.log; then
