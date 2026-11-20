@@ -162,7 +162,7 @@ func _build_city_deployment_panel() -> void:
     board.anchor_left = 0.035
     board.anchor_right = 0.965
     board.anchor_top = 0.17
-    board.anchor_bottom = 0.17
+    board.anchor_bottom = 0.70
     board.offset_top = 0
     board.offset_bottom = 0
     board.add_theme_constant_override("h_separation", 1)
@@ -360,6 +360,13 @@ func _close_city_battle_screen() -> void:
 '''
 if "func _build_city_battle_screen() -> void:" not in s:
     s += "\n" + city_ui + "\n"
+
+# Replace permanent shield research with regenerating armor; shields are temporary paid match add-ons.
+s = s.replace('"shield"', '"armor"')
+s = s.replace('ЩИТ', 'БРОНЯ')
+s = s.replace('UpgradeShieldButton', 'UpgradeArmorButton')
+s = s.replace('10 ЩИТА', '10 БРОНИ')
+s = s.replace('var shield_factor', 'var armor_factor')
 
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v85: new Chess City castle hub, persistent daily energy, free-form home-side army deployment, castle progression gates and attack preparation.")
