@@ -125,6 +125,8 @@ main_path.write_text(s, encoding="utf-8")
 
 # Server authoritative 20-second ready phase before the existing opening vote and first move.
 gameplay_path = ROOT / "server" / "gameplay.js"
+if not gameplay_path.exists():
+    gameplay_path = ROOT.parent.parent / "server" / "gameplay.js"
 g = gameplay_path.read_text(encoding="utf-8")
 def grep(old, new, label):
     global g
