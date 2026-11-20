@@ -4,6 +4,7 @@ const FILES = [0,1,2,3,4,5,6,7];
 const BACK_RANK = ["R","N","B","Q","K","B","N","R"];
 const ROLE_FILES = { "Ладья":[0,7], "Конь":[1,6], "Слон":[2,5], "Ферзь":[3], "Король":[4] };
 const LETTERS = { P:"Пешка", R:"Ладья", N:"Конь", B:"Слон", Q:"Ферзь", K:"Король" };
+export const VOTE_DURATION_MS = 20_000;
 
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function inside(file,row) { return file>=0 && file<8 && row>=0 && row<8; }
@@ -146,10 +147,39 @@ function sanitizeState(state,viewerId){
     activeTeam:state.activeTeam,activePlayerId:state.activePlayerId,startingPlayerId:state.startingPlayerId,
     turn:state.turn,moveNumber:state.moveNumber,board:clone(state.board),
     players:state.players.map(p=>({...p,stats:{...(p.stats||{})}})),viewer:{playerId:viewerId,team:viewer?.team||null,eliminated:viewer?.eliminated??true},
-    chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),pendingVote:state.pendingVote&&state.pendingVote.team===viewer?.team?{proposerId:state.pendingVote.proposerId,team:state.pendingVote.team,move:clone(state.pendingVote.move),votes:Object.values(state.pendingVote.votes),approveCount:Object.values(state.pendingVote.votes).filter(v=>v==="approve").length,rejectCount:Object.values(state.pendingVote.votes).filter(v=>v==="reject").length,requiredVotes:state.pendingVote.requiredVotes,viewerVote:state.pendingVote.votes[viewerId]||null}:null,lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
+    chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),pendingVote:state.pendingVote&&state.pendingVote.team===viewer?.team?{proposerId:state.pendingVote.proposerId,team:state.pendingVote.team,move:clone(state.pendingVote.move),votes:Object.values(state.pendingVote.votes),approveCount:voteCounts(state.pendingVote).approveCount,rejectCount:voteCounts(state.pendingVote).rejectCount,requiredVotes:state.pendingVote.requiredVotes,createdAt:state.pendingVote.createdAt,expiresAt:state.pendingVote.expiresAt,remainingMs:Math.max(0,state.pendingVote.expiresAt-Date.now()),viewerVote:state.pendingVote.votes[viewerId]||null}:null,lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
   };
 }
-export function getGameState(match,viewerId){return match?.game?sanitizeState(match.game,viewerId):null;}
+function voteCounts(pending){
+  const choices=Object.values(pending.votes||{});
+  return {approveCount:choices.filter(v=>v==="approve").length,rejectCount:choices.filter(v=>v==="reject").length};
+}
+function finalizeVote(match,decision){
+  const state=match.game,pending=state.pendingVote;
+  if(!pending)return null;
+  const {approveCount,rejectCount}=voteCounts(pending);
+  for(const [voterId,choice] of Object.entries(pending.votes)){
+    const voter=state.players.find(p=>p.playerId===voterId);
+    if(voter){voter.stats=voter.stats||{};voter.stats.votes=(voter.stats.votes||0)+1;if(choice===decision)voter.stats.correctVotes=(voter.stats.correctVotes||0)+1;}
+  }
+  const move=clone(pending.move),proposerId=pending.proposerId,requiredVotes=pending.requiredVotes;
+  state.pendingVote=null;
+  const result=decision==="approve"?applyGameMove(match,proposerId,move,true):passGameTurn(match,proposerId);
+  if(result.state)result.vote={decision,approveCount,rejectCount,requiredVotes,timedOut:Date.now()>=pending.expiresAt};
+  return result;
+}
+function expirePendingVote(match,now=Date.now()){
+  const pending=match?.game?.pendingVote;
+  if(!pending||now<pending.expiresAt)return null;
+  const {approveCount,rejectCount}=voteCounts(pending);
+  // A tie is not approval: the proposed move is rejected and the turn is passed.
+  return finalizeVote(match,approveCount>rejectCount?"approve":"reject");
+}
+export function getGameState(match,viewerId){
+  if(!match?.game)return null;
+  expirePendingVote(match);
+  return sanitizeState(match.game,viewerId);
+}
 export function applyGameMove(match,playerId,move,approvedByVote=false){
   const state=match?.game;if(!state||state.status!=="active")return{status:409,error:"MATCH_NOT_ACTIVE"};
   if(isVoteMode(state)&&!approvedByVote)return{status:403,error:"VOTE_REQUIRED"};
@@ -234,7 +264,8 @@ export function proposeGameMove(match,playerId,move){
   if(!piece||piece.ownerPlayerId!==playerId||piece.team!==state.activeTeam)return{status:403,error:"PIECE_NOT_OWNED"};
   if(!legalMove(state.board,piece,toFile,toRow))return{status:400,error:"ILLEGAL_MOVE"};
   const voters=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated);
-  state.pendingVote={proposerId:playerId,team:state.activeTeam,move:{fromFile,fromRow,toFile,toRow},votes:{},requiredVotes:Math.floor(voters.length/2)+1,createdAt:Date.now()};
+  const createdAt=Date.now();
+  state.pendingVote={proposerId:playerId,team:state.activeTeam,move:{fromFile,fromRow,toFile,toRow},votes:{},requiredVotes:Math.floor(voters.length/2)+1,createdAt,expiresAt:createdAt+VOTE_DURATION_MS};
   state.updatedAt=Date.now();
   return{status:200,state:sanitizeState(state,playerId)};
 }
@@ -244,14 +275,17 @@ export function castGameVote(match,playerId,vote){
   if(!isVoteMode(state))return{status:409,error:"VOTING_MODE_REQUIRED"};
   const pending=state.pendingVote;
   if(!pending)return{status:409,error:"NO_PENDING_VOTE"};
+  if(Date.now()>=pending.expiresAt){
+    const expired=expirePendingVote(match);
+    return{status:409,error:"VOTE_CLOSED",state:expired?.state||sanitizeState(state,playerId),vote:expired?.vote||null};
+  }
   const player=state.players.find(p=>p.playerId===playerId);
   if(!player)return{status:403,error:"PLAYER_NOT_IN_MATCH"};
   if(player.team!==pending.team||player.eliminated)return{status:403,error:"VOTE_NOT_ALLOWED"};
   if(!["approve","reject"].includes(vote))return{status:400,error:"INVALID_VOTE"};
   if(Object.prototype.hasOwnProperty.call(pending.votes,playerId))return{status:409,error:"ALREADY_VOTED"};
   pending.votes[playerId]=vote;
-  const approveCount=Object.values(pending.votes).filter(v=>v==="approve").length;
-  const rejectCount=Object.values(pending.votes).filter(v=>v==="reject").length;
+  const {approveCount,rejectCount}=voteCounts(pending);
   const voters=state.players.filter(p=>p.team===pending.team&&!p.eliminated);
   const allVoted=Object.keys(pending.votes).length>=voters.length;
   let decision=null;
@@ -260,22 +294,9 @@ export function castGameVote(match,playerId,vote){
   else if(allVoted)decision=approveCount>rejectCount?"approve":"reject";
   if(!decision){
     state.updatedAt=Date.now();
-    return{status:200,state:sanitizeState(state,playerId),vote:{decision:null,approveCount,rejectCount,requiredVotes:pending.requiredVotes}};
+    return{status:200,state:sanitizeState(state,playerId),vote:{decision:null,approveCount,rejectCount,requiredVotes:pending.requiredVotes,expiresAt:pending.expiresAt}};
   }
-  for(const [voterId,choice] of Object.entries(pending.votes)){
-    const voter=state.players.find(p=>p.playerId===voterId);
-    if(voter){voter.stats=voter.stats||{};voter.stats.votes=(voter.stats.votes||0)+1;if(choice===decision)voter.stats.correctVotes=(voter.stats.correctVotes||0)+1;}
-  }
-  const move=clone(pending.move),proposerId=pending.proposerId;
-  state.pendingVote=null;
-  if(decision==="approve"){
-    const result=applyGameMove(match,proposerId,move,true);
-    if(result.state)result.vote={decision,approveCount,rejectCount,requiredVotes:pending.requiredVotes};
-    return result;
-  }
-  const result=passGameTurn(match,proposerId);
-  if(result.state)result.vote={decision,approveCount,rejectCount,requiredVotes:pending.requiredVotes};
-  return result;
+  return finalizeVote(match,decision);
 }
 
 export function sendTeamChat(match,playerId,message){
