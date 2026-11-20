@@ -41,10 +41,17 @@ if anchor not in s:
 s = s.replace(anchor, "    _build_login_streak_screen()\n    _build_season_pass_screen()\n    _build_onboarding_screen()", 1)
 
 # Replace the placeholder shop action with a working pass entry.
-anchor = '        action.pressed.connect(_shop_coming_soon.bind(str(item["kind"])))'
+anchor = '''        if str(item["kind"]) == "chest":
+            action.text = "ЗАДАНИЯ И СУНДУК"
+            action.pressed.connect(_open_daily_tasks_screen)
+        else:
+            action.pressed.connect(_shop_coming_soon.bind(str(item["kind"])))'''
 if anchor not in s:
-    raise SystemExit("Shop action anchor missing")
-s = s.replace(anchor, '''        elif str(item["kind"]) == "pass":
+    raise SystemExit("Shop action block missing")
+s = s.replace(anchor, '''        if str(item["kind"]) == "chest":
+            action.text = "ЗАДАНИЯ И СУНДУК"
+            action.pressed.connect(_open_daily_tasks_screen)
+        elif str(item["kind"]) == "pass":
             action.text = "ОТКРЫТЬ ПРОПУСК"
             action.pressed.connect(_open_season_pass_screen)
         else:
