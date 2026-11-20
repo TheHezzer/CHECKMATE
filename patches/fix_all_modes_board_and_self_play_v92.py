@@ -102,24 +102,5 @@ body = '''func _developer_test_self_play() -> void:
 '''
 s = s[:start] + body + s[end:]
 
-# Show an unambiguous turn label in self-play instead of a teammate/slot label.
-rep('''    var active_name := "ТЫ • ОБЕ СТОРОНЫ" if local_self_play_active else "Игрок " + str(active_teammate)
-''', '''    var active_name := "ТЫ • ОБЕ СТОРОНЫ" if local_self_play_active else "Игрок " + str(active_teammate)
-''', "self-play turn label")
-# The shared HUD hint is mode-specific and must not claim that one user owns a team pair in 1v1.
-rep('''    if developer_mode and game_hint_label:
-        var role_name := _role_name_for_slot(local_user_slot)
-        game_hint_label.text = "ТВОИ ФИГУРЫ: ПЕШКА + " + role_name.to_upper() + "  •  ГОЛУБОЕ КОЛЬЦО  •  ТВОЯ ЛИНИЯ №" + str(local_user_slot)
-    elif game_hint_label:
-        game_hint_label.text = "НАЖМИ НА СВОЮ ФИГУРУ, ЗАТЕМ НА КЛЕТКУ ДЛЯ ХОДА"''', '''    if local_self_play_active and game_hint_label:
-        game_hint_label.text = "ТЕСТ С САМИМ СОБОЙ • УПРАВЛЯЕШЬ ОБЕИМИ СТОРОНАМИ"
-    elif standard_chess_mode_active and game_hint_label:
-        game_hint_label.text = "ВЫБЕРИ ЛЮБУЮ СВОЮ ФИГУРУ И СДЕЛАЙ ДОПУСТИМЫЙ ХОД"
-    elif developer_mode and game_hint_label:
-        var role_name := _role_name_for_slot(local_user_slot)
-        game_hint_label.text = "ТВОИ ФИГУРЫ: ПЕШКА + " + role_name.to_upper() + "  •  ГОЛУБОЕ КОЛЬЦО  •  ТВОЯ ЛИНИЯ №" + str(local_user_slot)
-    elif game_hint_label:
-        game_hint_label.text = "НАЖМИ НА СВОЮ ФИГУРУ, ЗАТЕМ НА КЛЕТКУ ДЛЯ ХОДА"''', "mode-aware board instructions")
-
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v92: shared board framing, softer lighting, smaller pieces, separated HUD and repaired self-play setup.")
