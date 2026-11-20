@@ -252,8 +252,8 @@ func _city_offline_coord(col: int,row: int) -> String:
     return "abcdefgh".substr(col,1) + str(8-row)
 
 func _city_offline_path_clear(source: Dictionary,col: int,row: int) -> bool:
-    var dx := signi(col-int(source.get("col",0)))
-    var dy := signi(row-int(source.get("row",0)))
+    var dx: int = 1 if col > int(source.get("col",0)) else -1 if col < int(source.get("col",0)) else 0
+    var dy: int = 1 if row > int(source.get("row",0)) else -1 if row < int(source.get("row",0)) else 0
     var x := int(source.get("col",0))+dx
     var y := int(source.get("row",0))+dy
     while x != col or y != row:
@@ -354,10 +354,10 @@ func _city_offline_finish_turn(team: String) -> void:
     else:
         city_offline_turn = "player"
         city_offline_status.text = "ТВОЙ ХОД"
-        __city_offline_refresh_armor("bot")
+        _city_offline_refresh_armor("bot")
         _city_offline_refresh()
 
-func __city_offline_refresh_armor(team: String) -> void:
+func _city_offline_refresh_armor(team: String) -> void:
     for key in city_offline_units.keys():
         var unit: Dictionary = city_offline_units[key]
         if unit.get("team")!=team:
@@ -413,7 +413,7 @@ func _city_offline_bot_turn() -> void:
             city_offline_units[str(chosen[1])] = source
             _city_offline_log("Бот переместил %s на %s." % [str(source.get("name","Фигура")),_city_offline_coord(int(parts[0]),int(parts[1]))])
     if city_offline_active:
-        __city_offline_refresh_armor("bot")
+        _city_offline_refresh_armor("bot")
     city_offline_busy = false
     city_offline_turn = "player"
     city_offline_status.text = "ТВОЙ ХОД"
