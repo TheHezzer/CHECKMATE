@@ -223,7 +223,7 @@ func _open_piece_progression(piece: String) -> void:
     wallet_hud.move_to_front()
 
 func _refresh_piece_progression() -> void:
-    var piece := PIECES[selected_piece]
+    var piece: String = str(PIECES[selected_piece])
     var data := _piece_progress_data(piece)
     var levels: Dictionary = data.get("levels", {})
     var base := _piece_progress_defaults(piece)
@@ -244,7 +244,7 @@ func _piece_total_level(levels: Dictionary) -> int:
     return total
 
 func _upgrade_piece_stat(stat: String, xp_cost: int, coin_cost: int) -> void:
-    var piece := PIECES[selected_piece]
+    var piece: String = str(PIECES[selected_piece])
     var data := _piece_progress_data(piece)
     var levels: Dictionary = data.get("levels", {})
     var current_level := int(levels.get(stat,0))
@@ -266,13 +266,13 @@ func _upgrade_piece_stat(stat: String, xp_cost: int, coin_cost: int) -> void:
     _refresh_piece_progression()
 
 func _purchase_piece_skin() -> void:
-    var piece := PIECES[selected_piece]
+    var piece: String = str(PIECES[selected_piece])
     var data := _piece_progress_data(piece)
     var levels: Dictionary = data.get("levels", {})
     if _piece_total_level(levels) < 3:
         progression_status_label.text = "Сначала сделай 3 улучшения этой фигуры."
         return
-    var skin_key := piece + " • Обсидиан"
+    var skin_key: String = piece + " • Обсидиан"
     if owned_skins.has(skin_key):
         progression_status_label.text = "Этот скин уже открыт."
         return
