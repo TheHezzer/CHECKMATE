@@ -89,7 +89,7 @@ test("matched players receive private session tokens and can use the authoritati
  const ticketsByPlayer=new Map();
  for(let i=0;i<16;i++){
    const playerId="live"+i;
-   const result=await queue(base,playerId,1000,roles[i]);
+   const result=await queue(base,playerId,1000,roles[i],"live_api");
    ticketsByPlayer.set(playerId,result.data.ticket);
  }
  const firstTicket=ticketsByPlayer.get("live0");
