@@ -257,10 +257,17 @@ jobs:
             exit 1
           fi
 
-          if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1 || ! command -v xdotool >/dev/null 2>&1; then
+          if ! command -v Xvfb >/dev/null 2>&1 || ! command -v xdotool >/dev/null 2>&1; then
             sudo apt-get update -qq
-            timeout 1200s sudo apt-get install -y --no-install-recommends xvfb ffmpeg xdotool
+            timeout 180s sudo apt-get install -y --no-install-recommends xvfb xdotool
           fi
+          python3 -m pip install --quiet --break-system-packages mss
+          cat > "$GITHUB_WORKSPACE/capture_screen.py" <<'PYSCREEN'
+          import sys
+          from mss import mss
+          with mss() as capture:
+              capture.shot(output=sys.argv[1], mon=1)
+          PYSCREEN
           Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
           XVFB_PID=$!
           export DISPLAY=:99
@@ -268,23 +275,20 @@ jobs:
           "$GODOT_BIN" --path "$project_dir" --windowed --resolution 1920x1080 > visual-run.log 2>&1 &
           GAME_PID=$!
           sleep 18
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_main_menu_v103.png
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 3 CHECKMATE_main_menu_v103.mp4
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_main_menu_v103.png
           xdotool mousemove 960 260 click 1
           sleep 5
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_party_modes_v103.png
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 3 CHECKMATE_party_modes_v103.mp4
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_party_modes_v103.png
           xdotool mousemove 380 400 click 1
           sleep 1
           xdotool mousemove 960 945 click 1
           sleep 5
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_preparation_v103.png
-          timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 3 CHECKMATE_preparation_v103.mp4
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_preparation_v103.png
           xdotool mousemove 1485 850 click 1
           sleep 2
           xdotool mousemove 1485 850 click 1
           sleep 6
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_classic_queue_v103.png
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_classic_queue_v103.png
           kill "$GAME_PID" 2>/dev/null || true
           "$GODOT_BIN" --path "$project_dir" --windowed --resolution 1920x1080 > standard-run.log 2>&1 &
           GAME_PID=$!
@@ -295,7 +299,7 @@ jobs:
           sleep 1
           xdotool mousemove 960 945 click 1
           sleep 8
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_standard_game_v103.png
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_standard_game_v103.png
           if grep -E "SCRIPT ERROR|Parse Error" standard-run.log; then
             echo "Standard Chess visual launch reported GDScript errors."
             exit 1
@@ -304,22 +308,22 @@ jobs:
           sleep 2
           xdotool mousemove 240 330 click 1
           sleep 3
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_daily_tasks_v103.png
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_daily_tasks_v103.png
           xdotool mousemove 1650 110 click 1
           sleep 3
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_shop_v103.png
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_shop_v103.png
           xdotool mousemove 1650 110 click 1
           sleep 2
           xdotool mousemove 240 535 click 1
           sleep 3
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_season_pass_v103.png
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_season_pass_v103.png
           xdotool mousemove 1650 110 click 1
           sleep 2
           xdotool mousemove 1650 110 click 1
           sleep 2
           xdotool mousemove 960 1010 click 1
           sleep 4
-          timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_chess_city_v103.png
+          python "$GITHUB_WORKSPACE/capture_screen.py" CHECKMATE_chess_city_v103.png
           kill "$GAME_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
           if grep -E "SCRIPT ERROR|Parse Error" visual-run.log; then
@@ -347,11 +351,8 @@ jobs:
           name: CHECKMATE-visual-review-v103
           path: |
             CHECKMATE_main_menu_v103.png
-            CHECKMATE_main_menu_v103.mp4
             CHECKMATE_party_modes_v103.png
-            CHECKMATE_party_modes_v103.mp4
             CHECKMATE_preparation_v103.png
-            CHECKMATE_preparation_v103.mp4
             CHECKMATE_classic_queue_v103.png
             CHECKMATE_standard_game_v103.png
             CHECKMATE_daily_tasks_v103.png
