@@ -72,7 +72,7 @@ rep('''        elif str(item["kind"]) == "pass":
 
 # Insert the persistent board-skin catalogue before gambit-pack screen construction.
 const anchor = "func _build_gambit_packs_screen() -> void:"
-const catalogue = `
+catalogue = """
 func _board_skin_catalogue() -> Array:
     return [
         {"name":"Орех", "price":0, "light":Color(0.76,0.62,0.43), "dark":Color(0.20,0.13,0.085), "desc":"Тёплая классическая древесина."},
@@ -202,9 +202,10 @@ func _board_skin_action(skin_name: String, price: int) -> void:
         board_skins_panel.visible = true
     _show_notice("Доска «%s» выбрана. Оформление сохранено навсегда." % skin_name)
 
-`;
-if (!s.includes(anchor)) throw new Error("catalogue insertion anchor missing");
-s=s.replace(anchor,catalogue+"\n"+anchor);
+"""
+if anchor not in s:
+    raise SystemExit("catalogue insertion anchor missing")
+s = s.replace(anchor, catalogue + "\n" + anchor);
 
 # Re-apply selected palette whenever the city board has been created.
 rep('''    _refresh_castle_hub_deployment()
