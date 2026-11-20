@@ -28,14 +28,6 @@ rep("""    silhouette_row.anchor_left = 0.185
     silhouette_row.anchor_top = 0.705
     silhouette_row.anchor_bottom = 0.855""", "lower and wider figure button strip")
 
-# Enlarge left-side cards and the text area inside them.
-for old, new, label in [
-    ("_panel(menu_panel, 0.015, 0.235, 0.205, 0.375)", "_panel(menu_panel, 0.015, 0.235, 0.225, 0.375)", "daily task card width"),
-    ("_panel(menu_panel, 0.015, 0.405, 0.205, 0.545)", "_panel(menu_panel, 0.015, 0.405, 0.225, 0.545)", "battle pass card width"),
-    ("_panel(menu_panel, 0.015, 0.575, 0.205, 0.735)", "_panel(menu_panel, 0.015, 0.575, 0.225, 0.735)", "event card width"),
-]:
-    rep(old, new, label)
-
 # Set consistent, clearly readable heading/body sizes even if earlier UI patches changed them.
 for name, size in [
     ("task_title", 22), ("task_desc", 18),
