@@ -457,3 +457,5 @@ rep(anchor, city_code + anchor, "insert city offline combat engine")
 
 p.write_text(s, encoding="utf-8")
 print("CHECKMATE v110: Chess City offline battle engine with bot, HP, damage, temporary test shield, armor regeneration and non-moving attacks.")
+
+# v110.1: strict GDScript typing and explicit offline battle QA validation.
