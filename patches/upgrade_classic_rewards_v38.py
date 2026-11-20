@@ -14,6 +14,66 @@ s = s.replace(
     'Все боевые фигуры открыты с начала. Перед каждой партией покупается комплект: обязательная пешка и выбранная вторая фигура. Минимальная цена комплекта — 30 злотых.'
 )
 s = s.replace('"ПРАВИЛА ПОКУПКИ"', '"ПРАВИЛА ВЫБОРА"')
+def replace_func(source, name, body):
+    marker = "func " + name + "("
+    start = source.find(marker)
+    if start < 0:
+        raise SystemExit("Missing function " + name)
+    end = source.find("\\nfunc ", start + len(marker))
+    if end < 0:
+        end = len(source)
+    return source[:start] + body.rstrip() + "\\n" + source[end:]
+
+s = replace_func(s, "_refresh_preparation_ui", \'\'\'func _refresh_preparation_ui() -> void:
+    if preparation_panel == null:
+        return
+    for i in range(prep_piece_buttons.size()):
+        var piece: String = ["Конь", "Слон", "Ладья", "Ферзь", "Король"][i]
+        prep_piece_buttons[i].text = "✓  " + piece.to_upper()
+    var piece_name: String = PIECES[selected_prep_piece]
+    var info := preparation_panel.find_child("PrepSelectedLabel", true, false) as Label
+    var action := preparation_panel.find_child("PrepActionButton", true, false) as Button
+    var cost := int(match_piece_costs.get(piece_name, 0))
+    if info:
+        info.text = "КОМПЛЕКТ: ПЕШКА + " + piece_name.to_upper()
+    if action:
+        if pending_match_purchase and pending_match_purchase_piece == piece_name:
+            action.text = "ПОДТВЕРДИТЬ И НАЧАТЬ"
+        else:
+            action.text = "КУПИТЬ КОМПЛЕКТ — %d ЗЛОТЫХ" % cost
+    if prep_status:
+        var have := int(balances["zloty"])
+        if piece_name == "Конь" and have < 30:
+            prep_status.text = "СТАРТОВАЯ ЗАЩИТА: комплект пешка + конь стоит 30 злотых. Баланс будет восстановлен до 30."
+        else:
+            prep_status.text = "РАСХОДНИК НА ОДНУ ПАРТИЮ: %d злотых\\nБаланс: %d • %s" % [cost, have, ("не хватает " + str(cost - have)) if have < cost else "средств достаточно"]
+    _save_economy()\'\'\')
+
+s = replace_func(s, "_purchase_or_unlock_selected", \'\'\'func _purchase_or_unlock_selected() -> void:
+    var piece_name: String = PIECES[selected_prep_piece]
+    if piece_name == "Пешка":
+        prep_status.text = "Пешка обязательна. Выбери вторую фигуру для комплекта."
+        return
+    if pending_match_purchase and pending_match_purchase_piece == piece_name:
+        selected_match_piece = piece_name
+        _confirm_preparation()
+        return
+    var cost := int(match_piece_costs.get(piece_name, 0))
+    if piece_name == "Конь" and int(balances["zloty"]) < 30:
+        balances["zloty"] = 30
+    if int(balances["zloty"]) < cost:
+        prep_status.text = "НЕ ХВАТАЕТ ЗЛОТЫХ: нужно %d, есть %d. Комплект пешка + конь доступен за 30." % [cost, int(balances["zloty"])]
+        _save_economy()
+        return
+    selected_match_piece = piece_name
+    balances["zloty"] = int(balances["zloty"]) - cost
+    pending_match_purchase = true
+    pending_match_purchase_cost = cost
+    pending_match_purchase_piece = piece_name
+    _save_economy()
+    prep_status.text = "Комплект пешка + " + piece_name.to_lower() + " куплен на одну партию за %d злотых. При отмене поиска деньги вернутся." % cost
+    _refresh_preparation_ui()\'\'\')
+
 
 # Update the tutorial's explanation to match the free Classic roster.
 s = s.replace(
