@@ -23,6 +23,10 @@ function ensureCity(account) {
   if (!account.city || typeof account.city !== "object") account.city = {};
   const city = account.city;
   if (!city.wallet) city.wallet = { zloty: 12750, xp: 850, gambits: 0 };
+  // Keep the premium currency under one canonical name; migrate older local/server records safely.
+  if (!Number.isSafeInteger(city.wallet.gambits)) {
+    city.wallet.gambits = Math.max(0, Number(city.wallet.chessmatites) || 0);
+  }
   if (!Array.isArray(city.unlockedPieces)) city.unlockedPieces = ["Пешка"];
   if (!Array.isArray(city.ownedPieces)) city.ownedPieces = ["Пешка"];
   if (!Array.isArray(city.ownedSkins)) city.ownedSkins = ["Дерево"];
