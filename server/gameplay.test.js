@@ -132,6 +132,7 @@ test("discussion lasts five seconds and voting stays closed until it ends",()=>{
 test("votes are closed after the 5-second discussion plus 15-second voting window and are resolved on state refresh",()=>{
  const f=fixture();f.mode="team_vote";const match={players:f.players,game:createGameState(f)};
  proposeGameMove(match,"white-0",{fromFile:0,fromRow:6,toFile:0,toRow:5});
+ match.game.pendingVote.discussionEndsAt=Date.now()-1;
  match.game.pendingVote.expiresAt=Date.now()-1;
  const result=castGameVote(match,"white-1","approve");
  assert.equal(result.error,"VOTE_CLOSED");
