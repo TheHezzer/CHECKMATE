@@ -4,6 +4,9 @@ const FILES = [0,1,2,3,4,5,6,7];
 const BACK_RANK = ["R","N","B","Q","K","B","N","R"];
 const ROLE_FILES = { "Ладья":[0,7], "Конь":[1,6], "Слон":[2,5], "Ферзь":[3], "Король":[4] };
 const LETTERS = { P:"Пешка", R:"Ладья", N:"Конь", B:"Слон", Q:"Ферзь", K:"Король" };
+export const TEAM_CLOCK_MS = 10 * 60 * 1000;
+export const PLAYER_TURN_MS = 20 * 1000;
+export const OPENING_VOTE_MS = 20 * 1000;
 export const VOTE_DISCUSSION_MS = 5_000;
 export const VOTE_DURATION_MS = 15_000;
 
@@ -91,13 +94,13 @@ function activePlayerFor(state,team,startAfter=-1){
   }
   return null;
 }
-function finishTurn(state,team,afterSlot){
+function finishTurn(state,team,afterSlot,now=Date.now()){
   state.nextSlot[team]=(afterSlot+1)%8;
   const other=team==="white"?"black":"white";
   const next=activePlayerFor(state,other,state.nextSlot[other]-1);
-  if(!next){state.status="finished";state.result=team;state.winnerTeam=team;return;}
+  if(!next){state.status="finished";state.result=team;state.winnerTeam=team;state.activePlayerId="";return;}
   state.activeTeam=other;state.activePlayerId=next.playerId;state.passedThisTurn=[];
-  state.turn+=1;
+  state.turn+=1;state.clockLastTickAt=now;state.playerTurnStartedAt=now;state.playerTurnEndsAt=now+PLAYER_TURN_MS;
 }
 function updateEliminations(state){
   for(const player of state.players){
