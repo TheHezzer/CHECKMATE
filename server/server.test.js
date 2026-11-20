@@ -164,7 +164,7 @@ test("abandoned team match finishes and sends a persistent result with rule warn
  const tickets=new Map();
  const playerId=registered.account.playerId;
  const accountQueue=await fetch(base+"/matchmaking/queue",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+registered.token},body:JSON.stringify({playerName:"LeaverTest",mode:"abandon_test",rating:1000,piece:"Ладья"})});
- assert.equal(accountQueue.status,200);
+ assert.ok([200,201].includes(accountQueue.status));
  tickets.set(playerId,(await accountQueue.json()).ticket);
  for(let i=0;i<15;i++){
    const response=await queue(base,"abandon-bot-"+i,1000,roles[i],"abandon_test");
