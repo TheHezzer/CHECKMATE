@@ -176,12 +176,15 @@ async function deliverMatchResults(match, accounts) {
   if (!match?.game || match.game.status !== "finished" || match.resultsDelivered) return;
   if (!match.rewardsPaid) {
     match.rewardResults = await accounts.awardMatchById(match.game.players, match.game.winnerTeam, match.mode);
+    match.ratingResults = await accounts.applyMatchRatingById(match.game.players, match.game.winnerTeam);
     match.rewardsPaid = true;
   }
   const rewardByPlayer = new Map((match.rewardResults || []).map(item => [item.playerId, item]));
+  const ratingByPlayer = new Map((match.ratingResults || []).map(item => [item.playerId, item]));
   const completedAt = new Date().toISOString();
   for (const player of match.game.players) {
     const reward = rewardByPlayer.get(player.playerId) || { xp: 0, zloty: 0 };
+    const rating = ratingByPlayer.get(player.playerId) || { ratingDelta: 0, ratingAfter: 0, abandonmentPenalty: 0 };
     const won = match.game.winnerTeam === player.team;
     const draw = match.game.winnerTeam === "draw";
     const outcome = draw ? "НИЧЬЯ" : won ? "ПОБЕДА" : "ПОРАЖЕНИЕ";
@@ -193,7 +196,7 @@ async function deliverMatchResults(match, accounts) {
       type: "match_result",
       title: "Партия завершена: " + outcome,
       message: "Режим: " + match.mode + ". Итог: " + (match.game.result || "завершена") +
-        ". Награда: +" + Number(reward.zloty || 0) + " злотых, +" + Number(reward.xp || 0) + " XP." + abandonedMessage,
+        ". Награда: +" + Number(reward.zloty || 0) + " злотых, +" + Number(reward.xp || 0) + " XP. Рейтинг: " + (rating.ratingDelta >= 0 ? "+" : "") + Number(rating.ratingDelta || 0) + "." + abandonedMessage,
       createdAt: completedAt,
       data: {
         matchId: match.id,
@@ -206,6 +209,9 @@ async function deliverMatchResults(match, accounts) {
         abandonedAt: player.abandonedAt || null,
         zloty: Number(reward.zloty || 0),
         xp: Number(reward.xp || 0),
+        ratingDelta: Number(rating.ratingDelta || 0),
+        ratingAfter: Number(rating.ratingAfter || 0),
+        abandonmentPenalty: Number(rating.abandonmentPenalty || 0),
         stats: player.stats || {},
         teamPlayers: match.game.players.filter(item => item.team === player.team).map(item => ({
           playerId: item.playerId, name: item.name, abandoned: !!item.abandoned, stats: item.stats || {}
