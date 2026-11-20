@@ -92,9 +92,9 @@ func _build_piece_progression_panel() -> void:
     progression_next_card.name = "LockedNextResearchCard"
     var next_title := _add_label(progression_next_card, "УРОВЕНЬ 2", Vector2(10, 8), Vector2(230, 32), 18, PALE_GOLD)
     var lock := _add_label(progression_next_card, "🔒", Vector2(10, 48), Vector2(230, 70), 48, Color(0.78,0.70,0.52))
-    lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    lock.name = "NextResearchLock"\n    lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     var next_desc := _add_label(progression_next_card, "СЛЕДУЮЩИЙ ПЕРСОНАЖ\nОткроется после полного исследования уровня 1", Vector2(12, 125), Vector2(230, 78), 13, Color(0.83,0.80,0.74))
-    next_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    next_desc.name = "NextResearchDescription"\n    next_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     var next_progress := _add_label(progression_next_card, "0 / 15 улучшений", Vector2(12, 205), Vector2(230, 28), 13, PALE_GOLD)
     next_progress.name = "NextResearchProgress"
 
@@ -140,6 +140,12 @@ func _refresh_piece_progression() -> void:
         next_progress.text = "%d / 15 улучшений" % total
     var unlocked := total >= 15
     progression_next_card.modulate = Color(1,1,1,1) if unlocked else Color(0.72,0.72,0.72,0.92)
+    var lock_label := progression_next_card.find_child("NextResearchLock", true, false) as Label
+    var next_desc := progression_next_card.find_child("NextResearchDescription", true, false) as Label
+    if lock_label:
+        lock_label.text = "🔓" if unlocked else "🔒"
+    if next_desc:
+        next_desc.text = "СЛЕДУЮЩИЙ ПЕРСОНАЖ\nИсследования уровня 1 завершены." if unlocked else "СЛЕДУЮЩИЙ ПЕРСОНАЖ\nОткроется после полного исследования уровня 1"
     progression_status_label.text = "Уровень 2 открыт — можно переходить к следующему персонажу." if unlocked else "До следующего персонажа: %d из 15 улучшений. Все три характеристики нужно прокачать до 5." % total
     var wallet := progression_panel.find_child("ResearchWalletSummary", true, false) as Label
     if wallet:
