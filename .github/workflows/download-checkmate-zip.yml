@@ -246,7 +246,7 @@ jobs:
           fi
 
           if ! command -v Xvfb >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
-            timeout 120s sudo apt-get install -y --no-install-recommends xvfb ffmpeg xdotool
+            timeout 300s sudo apt-get install -y --no-install-recommends xvfb ffmpeg xdotool
           fi
           Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
           XVFB_PID=$!
@@ -254,10 +254,10 @@ jobs:
           sleep 2
           "$GODOT_BIN" --path "$project_dir" --windowed --resolution 1920x1080 > visual-run.log 2>&1 &
           GAME_PID=$!
-          sleep 8
+          sleep 15
           timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_intro_review.png
-          xdotool mousemove 960 560 click 1
-          sleep 6
+          xdotool mousemove 960 500 click 1
+          sleep 8
           timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_after_continue_review.png
           timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 20 CHECKMATE_after_continue_review.mp4
           kill "$GAME_PID" 2>/dev/null || true
