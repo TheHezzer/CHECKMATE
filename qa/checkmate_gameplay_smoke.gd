@@ -83,9 +83,8 @@ func _run() -> void:
     game.local_self_play_active = false
     game.local_bot_test_active = true
     game.local_user_team = "observer"
-    game.local_user_slot = 99
-    game._start_game("Стандартные шахматы")
     game.local_user_slot = 1
+    game._start_game("Стандартные шахматы")
     game._make_bot_move()
     await create_timer(0.60).timeout
     _check(not game.last_move.is_empty() and game.current_team == "black", "bot generates and executes a legal opening move")
