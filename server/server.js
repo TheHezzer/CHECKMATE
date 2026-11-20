@@ -275,6 +275,7 @@ export function createMatchmakingServer(options = {}) {
         const playerId=entry[0],action=gameplayRoute[2];
         if(req.method==="GET"&&action==="state"){
           const state=getGameState(match,playerId);
+          if(state&&match.rewardResults) state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
           return state?send(res,200,state):send(res,404,{error:"MATCH_NOT_FOUND"});
         }
         if(req.method!=="POST")return send(res,405,{error:"METHOD_NOT_ALLOWED"});
@@ -282,9 +283,10 @@ export function createMatchmakingServer(options = {}) {
         if(action==="move"){
           const result=applyGameMove(match,playerId,body);
           if(result.status===200&&match.game.status==="finished"&&!match.rewardsPaid){
-            await accounts.awardMatchById(match.game.players,match.game.winnerTeam);
+            match.rewardResults=await accounts.awardMatchById(match.game.players,match.game.winnerTeam);
             match.rewardsPaid=true;
           }
+          if(result.state&&match.rewardResults) result.state.reward=match.rewardResults.find(item=>item.playerId===playerId)||null;
           return send(res,result.status,result.state||{error:result.error});
         }
         if(action==="pass"){
