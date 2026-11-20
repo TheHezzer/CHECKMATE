@@ -257,7 +257,7 @@ jobs:
           GAME_PID=$!
           sleep 15
           timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_intro_review.png
-          xdotool mousemove 820 810 click 1
+          xdotool mousemove 960 810 click 1
           sleep 8
           timeout 15s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 1 -i :99.0 -frames:v 1 CHECKMATE_after_continue_review.png
           timeout 30s ffmpeg -y -f x11grab -video_size 1920x1080 -framerate 15 -i :99.0 -t 20 CHECKMATE_after_continue_review.mp4
