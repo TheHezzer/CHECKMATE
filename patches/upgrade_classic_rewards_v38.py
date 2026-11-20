@@ -6,7 +6,7 @@ main = root / "scripts" / "main.gd"
 s = main.read_text(encoding="utf-8")
 
 s = s.replace(
-    'var match_piece_costs := {"Пешка": 0, "Конь": 180, "Слон": 220, "Ладья": 260, "Ферзь": 520, "Король": 0}',
+    'var match_piece_costs := {"Пешка": 0, "Конь": 0, "Слон": 0, "Ладья": 0, "Ферзь": 0, "Король": 0}',
     'var match_piece_costs := {"Пешка": 0, "Конь": 0, "Слон": 0, "Ладья": 0, "Ферзь": 0, "Король": 0}'
 )
 s = s.replace(
