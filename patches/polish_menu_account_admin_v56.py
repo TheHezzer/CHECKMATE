@@ -23,12 +23,15 @@ rep('''        if not unlocked:
 ''','''        shade = Color(0.88, 0.86, 0.80) if i == selected_piece else Color(0.68, 0.67, 0.63)
 ''',"all figures same availability")
 # Enlarge central 3D preview via root scale where it is built.
-rep('''    preview_root = Node3D.new()
-    preview_root.name = "MainPiecePreview"
-''','''    preview_root = Node3D.new()
-    preview_root.name = "MainPiecePreview"
-    preview_root.scale = Vector3(1.22, 1.22, 1.22)
-''',"central figure scale")
+rep('''    preview_container.anchor_left = 0.345
+    preview_container.anchor_top = 0.255
+    preview_container.anchor_right = 0.655
+    preview_container.anchor_bottom = 0.715
+''','''    preview_container.anchor_left = 0.315
+    preview_container.anchor_top = 0.225
+    preview_container.anchor_right = 0.685
+    preview_container.anchor_bottom = 0.735
+''',"central figure preview size")
 
 # Make portrait clickable and add a distinct enter button on profile card.
 rep('''    profile_hit.size = Vector2(245, 94)''','''    profile_hit.size = Vector2(84, 94)''',"portrait hitbox")
