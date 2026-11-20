@@ -175,8 +175,15 @@ function tryMatch(ticket, now=Date.now()) {
 async function deliverMatchResults(match, accounts) {
   if (!match?.game || match.game.status !== "finished" || match.resultsDelivered) return;
   if (!match.rewardsPaid) {
-    match.rewardResults = await accounts.awardMatchById(match.game.players, match.game.winnerTeam, match.mode);
+    const rewards = await accounts.awardMatchById(match.game.players, match.game.winnerTeam, match.mode);
     match.ratingResults = await accounts.applyMatchRatingById(match.game.players, match.game.winnerTeam);
+    const rewardMap = new Map(rewards.map(item => [item.playerId, item]));
+    const ratingMap = new Map(match.ratingResults.map(item => [item.playerId, item]));
+    match.rewardResults = match.game.players.map(player => ({
+      playerId: player.playerId,
+      ...(rewardMap.get(player.playerId) || { xp: 0, zloty: 0 }),
+      ...(ratingMap.get(player.playerId) || { ratingDelta: 0, ratingAfter: 0, abandonmentPenalty: 0 })
+    }));
     match.rewardsPaid = true;
   }
   const rewardByPlayer = new Map((match.rewardResults || []).map(item => [item.playerId, item]));
