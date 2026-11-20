@@ -199,6 +199,28 @@ export function createMatchmakingServer(options = {}) {
         return send(res, result.status, result.body);
       }
 
+      const authorization=String(req.headers.authorization||"");
+      const accountToken=authorization.startsWith("Bearer ")?authorization.slice(7):"";
+      if(req.method==="GET"&&url.pathname==="/city/profile"){
+        const result=await accounts.cityProfile(accountToken);
+        return send(res,result.status,result.body);
+      }
+      if(req.method==="POST"&&url.pathname==="/city/unlock-piece"){
+        const body=await readJson(req);
+        const result=await accounts.cityUnlockPiece(accountToken,body.piece);
+        return send(res,result.status,result.body);
+      }
+      if(req.method==="POST"&&url.pathname==="/city/purchase-piece"){
+        const body=await readJson(req);
+        const result=await accounts.cityPurchasePiece(accountToken,body.piece);
+        return send(res,result.status,result.body);
+      }
+      if(req.method==="POST"&&url.pathname==="/city/purchase-skin"){
+        const body=await readJson(req);
+        const result=await accounts.cityPurchaseSkin(accountToken,body.skin);
+        return send(res,result.status,result.body);
+      }
+
       if (req.method === "GET" && url.pathname === "/leaderboard") {
         const limit = Number(url.searchParams.get("limit") || 50);
         return send(res, 200, { players: await accounts.leaderboard(limit) });
@@ -275,7 +297,7 @@ export function createMatchmakingServer(options = {}) {
         const ticketId=url.pathname.slice(queuePrefix.length);
         const ticket=tickets.get(ticketId);
         if(!ticket)return send(res,404,{error:"TICKET_EXPIRED"});
-        if(ticket.status==="matched")return send(res,200,{ticket:ticket.id,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,startingTeam:"white",startingPlayerId:ticket.startingPlayerId||"",gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
+        if(ticket.status==="matched")return send(res,200,{ticket:ticket.id,status:"matched",matchId:ticket.matchId,team:ticket.team,players:ticket.players,startingTeam:"white",startingPlayerId:ticket.startingPlayerId||"",playerSessionToken:ticket.playerSessionToken||"",gameServerHost:ticket.gameServerHost,gameServerPort:ticket.gameServerPort});
         const preview=ticket.status==="waiting"?queuePreview(ticket):{players:[],queueCount:0,requiredPlayers:CLASSIC_MATCH_SIZE};
         return send(res,200,{ticket:ticket.id,status:ticket.status,...preview});
       }
