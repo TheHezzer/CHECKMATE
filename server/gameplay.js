@@ -4,7 +4,8 @@ const FILES = [0,1,2,3,4,5,6,7];
 const BACK_RANK = ["R","N","B","Q","K","B","N","R"];
 const ROLE_FILES = { "Ладья":[0,7], "Конь":[1,6], "Слон":[2,5], "Ферзь":[3], "Король":[4] };
 const LETTERS = { P:"Пешка", R:"Ладья", N:"Конь", B:"Слон", Q:"Ферзь", K:"Король" };
-export const VOTE_DURATION_MS = 20_000;
+export const VOTE_DISCUSSION_MS = 5_000;
+export const VOTE_DURATION_MS = 15_000;
 
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function inside(file,row) { return file>=0 && file<8 && row>=0 && row<8; }
@@ -147,7 +148,7 @@ function sanitizeState(state,viewerId){
     activeTeam:state.activeTeam,activePlayerId:state.activePlayerId,startingPlayerId:state.startingPlayerId,
     turn:state.turn,moveNumber:state.moveNumber,board:clone(state.board),
     players:state.players.map(p=>({...p,stats:{...(p.stats||{})}})),viewer:{playerId:viewerId,team:viewer?.team||null,eliminated:viewer?.eliminated??true},
-    chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),pendingVote:state.pendingVote&&state.pendingVote.team===viewer?.team?{proposerId:state.pendingVote.proposerId,team:state.pendingVote.team,move:clone(state.pendingVote.move),votes:Object.values(state.pendingVote.votes),approveCount:voteCounts(state.pendingVote).approveCount,rejectCount:voteCounts(state.pendingVote).rejectCount,requiredVotes:state.pendingVote.requiredVotes,createdAt:state.pendingVote.createdAt,expiresAt:state.pendingVote.expiresAt,remainingMs:Math.max(0,state.pendingVote.expiresAt-Date.now()),viewerVote:state.pendingVote.votes[viewerId]||null}:null,lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
+    chat:state.chat.filter(m=>m.team===viewer?.team).slice(-50),pendingVote:state.pendingVote&&state.pendingVote.team===viewer?.team?{proposerId:state.pendingVote.proposerId,team:state.pendingVote.team,move:clone(state.pendingVote.move),votes:Object.values(state.pendingVote.votes),approveCount:voteCounts(state.pendingVote).approveCount,rejectCount:voteCounts(state.pendingVote).rejectCount,requiredVotes:state.pendingVote.requiredVotes,createdAt:state.pendingVote.createdAt,discussionEndsAt:state.pendingVote.discussionEndsAt,expiresAt:state.pendingVote.expiresAt,remainingMs:Math.max(0,state.pendingVote.expiresAt-Date.now()),viewerVote:state.pendingVote.votes[viewerId]||null}:null,lastMove:state.history.at(-1)||null,updatedAt:state.updatedAt
   };
 }
 function voteCounts(pending){
@@ -265,7 +266,7 @@ export function proposeGameMove(match,playerId,move){
   if(!legalMove(state.board,piece,toFile,toRow))return{status:400,error:"ILLEGAL_MOVE"};
   const voters=state.players.filter(p=>p.team===state.activeTeam&&!p.eliminated);
   const createdAt=Date.now();
-  state.pendingVote={proposerId:playerId,team:state.activeTeam,move:{fromFile,fromRow,toFile,toRow},votes:{},requiredVotes:Math.floor(voters.length/2)+1,createdAt,expiresAt:createdAt+VOTE_DURATION_MS};
+  state.pendingVote={proposerId:playerId,team:state.activeTeam,move:{fromFile,fromRow,toFile,toRow},votes:{},requiredVotes:Math.floor(voters.length/2)+1,createdAt,discussionEndsAt:createdAt+VOTE_DISCUSSION_MS,expiresAt:createdAt+VOTE_DISCUSSION_MS+VOTE_DURATION_MS};
   state.updatedAt=Date.now();
   return{status:200,state:sanitizeState(state,playerId)};
 }
@@ -275,6 +276,9 @@ export function castGameVote(match,playerId,vote){
   if(!isVoteMode(state))return{status:409,error:"VOTING_MODE_REQUIRED"};
   const pending=state.pendingVote;
   if(!pending)return{status:409,error:"NO_PENDING_VOTE"};
+  if(Date.now()<pending.discussionEndsAt){
+    return{status:409,error:"DISCUSSION_IN_PROGRESS",state:sanitizeState(state,playerId),discussionEndsAt:pending.discussionEndsAt};
+  }
   if(Date.now()>=pending.expiresAt){
     const expired=expirePendingVote(match);
     return{status:409,error:"VOTE_CLOSED",state:expired?.state||sanitizeState(state,playerId),vote:expired?.vote||null};
