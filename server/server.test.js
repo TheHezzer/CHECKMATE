@@ -156,3 +156,44 @@ test("Classic entry bundle prices are consistent for every second-piece role",as
    assert.equal(profile.city.wallet.zloty,12750-cost);
  }
 }));
+
+
+test("abandoned team match finishes and sends a persistent result with rule warning and rating penalty",async()=>withServer(async base=>{
+ const registered=await fetch(base+"/accounts/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({username:"LeaverTest",password:"leave-test-pass"})}).then(r=>r.json());
+ const roles=["Ладья","Ладья","Ладья","Ладья","Конь","Конь","Конь","Конь","Слон","Слон","Слон","Слон","Ферзь","Ферзь","Король","Король"];
+ const tickets=new Map();
+ const playerId=registered.account.playerId;
+ const accountQueue=await fetch(base+"/matchmaking/queue",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+registered.token},body:JSON.stringify({playerName:"LeaverTest",mode:"abandon_test",rating:1000,piece:"Ладья"})});
+ assert.equal(accountQueue.status,200);
+ tickets.set(playerId,(await accountQueue.json()).ticket);
+ for(let i=0;i<15;i++){
+   const response=await queue(base,"abandon-bot-"+i,1000,roles[i],"abandon_test");
+   tickets.set("abandon-bot-"+i,response.data.ticket);
+ }
+ const first=await fetch(base+"/matchmaking/queue/"+tickets.get(playerId)).then(r=>r.json());
+ assert.equal(first.status,"matched");
+ const sessions=new Map();
+ for(const [id,ticket] of tickets){
+   const status=await fetch(base+"/matchmaking/queue/"+ticket).then(r=>r.json());
+   sessions.set(id,status.playerSessionToken);
+ }
+ const roster=first.players;
+ const user=roster.find(p=>p.playerId===playerId);
+ assert.ok(user);
+ const white=roster.filter(p=>p.team==="white");
+ for(const voter of white.slice(0,5)){
+   const vote=await fetch(base+"/matches/"+first.matchId+"/opening-vote",{method:"POST",headers:{"content-type":"application/json","x-player-session":sessions.get(voter.playerId)},body:JSON.stringify({candidatePlayerId:white[0].playerId})});
+   assert.equal(vote.status,200);
+ }
+ const abandonedTeam=roster.filter(p=>p.team===user.team);
+ for(const player of abandonedTeam){
+   const leave=await fetch(base+"/matches/"+first.matchId+"/leave",{method:"POST",headers:{"x-player-session":sessions.get(player.playerId)}});
+   assert.equal(leave.status,200);
+ }
+ const inbox=await fetch(base+"/notifications",{headers:{authorization:"Bearer "+registered.token}}).then(r=>r.json());
+ assert.equal(inbox.notifications.length,1);
+ assert.equal(inbox.notifications[0].type,"match_result");
+ assert.equal(inbox.notifications[0].data.abandoned,true);
+ assert.ok(inbox.notifications[0].data.ratingDelta<0);
+ assert.match(inbox.notifications[0].message,/запрещено правилами CHECKMATE/i);
+}));
