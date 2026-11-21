@@ -1,0 +1,2 @@
+Trigger marker for requested CHECKMATE audit.
+Important: the current workflow source archive is still the legacy root ZIP and does not contain uploaded CHECKMATE v116. This run validates the existing pipeline only, not v116.
