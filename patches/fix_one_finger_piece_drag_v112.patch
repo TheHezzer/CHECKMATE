@@ -1,0 +1,54 @@
+--- a/scripts/main.gd
++++ b/scripts/main.gd
+@@ -29,6 +29,12 @@
+ var dragging_preview := false
+ var last_pointer_x := 0.0
+ var last_pointer_y := 0.0
++# One-finger touch state for moving chess pieces by dragging on Android.
++var game_touch_active := false
++var game_touch_dragging := false
++var game_touch_start_position := Vector2.ZERO
++var game_touch_last_position := Vector2.ZERO
++const GAME_TOUCH_DRAG_THRESHOLD := 14.0
+ var status_label: Label
+ var preparation_panel: Control
+ var mode_selection_panel: Control
+@@ -1549,10 +1555,34 @@
+ 
+ func _input(event: InputEvent) -> void:
+     if game_panel != null and game_panel.visible and world_root.visible:
+-        if event is InputEventScreenTouch and event.pressed:
+-            if not _is_game_ui_control_hit(event.position):
+-                _handle_game_board_click(event.position)
++        # Android sends one InputEventScreenTouch for a finger. Resolve the
++        # action on release so one finger can tap a square or drag a piece.
++        if event is InputEventScreenTouch:
++            if event.pressed:
++                if not _is_game_ui_control_hit(event.position):
++                    game_touch_active = true
++                    game_touch_dragging = false
++                    game_touch_start_position = event.position
++                    game_touch_last_position = event.position
++                    get_viewport().set_input_as_handled()
++            elif game_touch_active:
++                game_touch_last_position = event.position
++                if game_touch_dragging:
++                    # Select the source, then move to the release square.
++                    if selected_game_piece == null:
++                        _handle_game_board_click(game_touch_start_position)
++                    _handle_game_board_click(game_touch_last_position)
++                else:
++                    _handle_game_board_click(game_touch_last_position)
++                game_touch_active = false
++                game_touch_dragging = false
+                 get_viewport().set_input_as_handled()
++            return
++        if event is InputEventScreenDrag and game_touch_active:
++            game_touch_last_position = event.position
++            if not game_touch_dragging and game_touch_start_position.distance_to(event.position) >= GAME_TOUCH_DRAG_THRESHOLD:
++                game_touch_dragging = true
++            get_viewport().set_input_as_handled()
+             return
+         if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+             if not _is_game_ui_control_hit(event.position):
+                 _handle_game_board_click(event.position)
