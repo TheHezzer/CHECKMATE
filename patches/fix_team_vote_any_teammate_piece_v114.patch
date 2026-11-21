@@ -1,0 +1,70 @@
+--- a/scripts/main.gd
++++ b/scripts/main.gd
+@@ -1813,7 +1813,9 @@
+     camera.look_at(Vector3(0, 0.50, -0.4), Vector3.UP)
+     _update_turn_highlights()
+     status_label.text = "Выбери фигуру с ГОЛУБЫМ кольцом, затем нажми клетку назначения."
+-    if (developer_mode or local_bot_test_active) and game_hint_label:
++    if selected_mode == "Командное голосование" and game_hint_label:
++        game_hint_label.text = "ГОЛОСОВАНИЕ: ВЫБЕРИ ЛЮБУЮ ФИГУРУ СВОЕЙ КОМАНДЫ — СВОЮ ИЛИ СОЮЗНИКА — И НАЖМИ ЕЁ ЛЕГАЛЬНЫЙ ХОД"
++    elif (developer_mode or local_bot_test_active) and game_hint_label:
+         var role_name := _role_name_for_slot(local_user_slot)
+         game_hint_label.text = "ТВОИ ФИГУРЫ: ПЕШКА + " + role_name.to_upper() + "  •  ГОЛУБОЕ КОЛЬЦО  •  ТВОЯ ЛИНИЯ №" + str(local_user_slot)
+     elif game_hint_label:
+@@ -2068,9 +2070,10 @@
+         status_label.text = "Сейчас ход соперника."
+         return
+     var target_piece: Node3D = _get_game_piece_at(col, row)
++    var team_voting_mode := selected_mode == "Командное голосование"
+     if selected_game_piece == null:
+-        if target_piece != null and str(target_piece.get_meta("team")) == local_team and (not online_active or online_match_id.is_empty() or str(target_piece.get_meta("ownerPlayerId", "")) == online_player_id):
+-            if not standard_chess_mode_active and (developer_mode or local_bot_test_active or local_offline_mode_active) and (current_team != local_user_team or active_teammate != local_user_slot or int(target_piece.get_meta("owner_slot", 0)) != local_user_slot):
++        if target_piece != null and str(target_piece.get_meta("team")) == local_team and (team_voting_mode or not online_active or online_match_id.is_empty() or str(target_piece.get_meta("ownerPlayerId", "")) == online_player_id):
++            if not team_voting_mode and not standard_chess_mode_active and (developer_mode or local_bot_test_active or local_offline_mode_active) and (current_team != local_user_team or active_teammate != local_user_slot or int(target_piece.get_meta("owner_slot", 0)) != local_user_slot):
+                 status_label.text = "Эта фигура принадлежит другому игроку. Твои две фигуры отмечены голубым кольцом."
+                 return
+             selected_game_piece = target_piece
+@@ -2085,7 +2088,7 @@
+         status_label.text = "Выбор отменён."
+         return
+     if target_piece != null and str(target_piece.get_meta("team")) == local_team:
+-        if not standard_chess_mode_active and (developer_mode or local_bot_test_active or local_offline_mode_active) and int(target_piece.get_meta("owner_slot", 0)) != local_user_slot:
++        if not team_voting_mode and not standard_chess_mode_active and (developer_mode or local_bot_test_active or local_offline_mode_active) and int(target_piece.get_meta("owner_slot", 0)) != local_user_slot:
+             status_label.text = "Это фигура союзника. Ищи голубое кольцо."
+             return
+         selected_game_piece = target_piece
+@@ -2095,13 +2098,18 @@
+     var from_col := int(selected_game_piece.get_meta("col"))
+     var from_row := int(selected_game_piece.get_meta("row"))
+     if online_active and not online_match_id.is_empty():
+-        if str(selected_game_piece.get_meta("ownerPlayerId", "")) != online_player_id:
++        if not team_voting_mode and str(selected_game_piece.get_meta("ownerPlayerId", "")) != online_player_id:
+             status_label.text = "Эта фигура принадлежит союзнику. Выбери свою фигуру или передай ход."
+             return
+         var move_payload := {"fromFile": from_col, "fromRow": from_row, "toFile": col, "toRow": row}
+-        if selected_mode == "Командное голосование":
++        if team_voting_mode:
++            var proposed_target := _get_game_piece_at(col, row)
++            var proposed_kind := str(selected_game_piece.get_meta("kind"))
++            if not _is_valid_classic_move(proposed_kind, local_team, from_col, from_row, col, row, proposed_target) or not _move_keeps_king_safe(selected_game_piece, col, row, proposed_target):
++                status_label.text = "Этот ход нелегален. Выбери подсвеченную клетку, чтобы отправить предложение на голосование."
++                return
+             _send_matchmaking_request("game_propose", "/matches/" + online_match_id + "/propose", HTTPClient.METHOD_POST, move_payload)
+-            status_label.text = "Предложение отправлено команде. Ждём голосов…"
++            status_label.text = "Голос учтён: предложен ход выбранной фигуры. Ждём решения команды…"
+         else:
+             _send_matchmaking_request("game_move", "/matches/" + online_match_id + "/move", HTTPClient.METHOD_POST, move_payload)
+             status_label.text = "Ход отправлен. Ждём подтверждения сервера…"
+--- a/README_RU.txt
++++ b/README_RU.txt
+@@ -16,3 +16,10 @@
+ - Локальные тестовые партии не подключаются к серверу и не должны выдавать серверные награды/рейтинг.
+ 
+ Важно: пара TheHezzer/admin встроена в клиент только как временный тестовый доступ. Перед публичным релизом её нужно заменить серверной авторизацией разработчика.
++
++
++Обновление v114 — выбор фигур в командном голосовании:
++- В режиме «Командное голосование» можно выбрать любую фигуру активной команды, даже если она закреплена за другим участником команды.
++- Выбор фигуры соперника запрещён: голосовать можно только за легальный ход своей стороны.
++- Касание клетки назначения отправляет предложение хода на командное голосование; перед отправкой локально проверяется легальность хода и безопасность короля.
++- В остальных режимах ограничения владения фигурами сохранены.
