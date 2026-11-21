@@ -1,0 +1,145 @@
+name: CHECKMATE v117 — gameplay and visual QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_archive:
+        description: Repository-root ZIP filename (normally CHECKMATE_classic_v117.zip)
+        required: true
+        type: string
+        default: CHECKMATE_classic_v117.zip
+  push:
+    branches: [main, splash-update]
+    paths:
+      - 'CHECKMATE_classic_v117.zip'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checkmate-v117-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  godot-runtime-and-visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source archive and QA scripts
+        uses: actions/checkout@v4
+
+      - name: Select and extract exact v117 source archive
+        shell: bash
+        env:
+          SOURCE_ARCHIVE: ${{ inputs.source_archive || 'CHECKMATE_classic_v117.zip' }}
+        run: |
+          set -euo pipefail
+          if [[ "$SOURCE_ARCHIVE" != "CHECKMATE_classic_v117.zip" ]]; then
+            echo "This workflow currently accepts the exact v117 archive name CHECKMATE_classic_v117.zip."
+            exit 1
+          fi
+          test -f "$SOURCE_ARCHIVE" || { echo "Missing $SOURCE_ARCHIVE. Upload CHECKMATE_classic_v117.zip to the repository root, then rerun this workflow."; exit 1; }
+          unzip -t "$SOURCE_ARCHIVE"
+          mkdir -p source
+          unzip -q "$SOURCE_ARCHIVE" -d source
+          PROJECT_FILE="$(find source -name project.godot -print -quit)"
+          test -n "$PROJECT_FILE" || { echo "project.godot not found in source ZIP"; exit 1; }
+          echo "PROJECT_DIR=$(dirname "$PROJECT_FILE")" >> "$GITHUB_ENV"
+
+      - name: Install Godot 4.4.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --silent --show-error "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip" -o godot.zip
+          unzip -q godot.zip -d godot-bin
+          chmod +x godot-bin/Godot_v4.4.1-stable_linux.x86_64
+          echo "GODOT_BIN=$GITHUB_WORKSPACE/godot-bin/Godot_v4.4.1-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Import and validate Godot project
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --editor --path "$PROJECT_DIR" --quit 2>&1 | tee godot-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" godot-import.log; then exit 1; fi
+          "$GODOT_BIN" --headless --path "$PROJECT_DIR" --quit-after 5 2>&1 | tee godot-runtime.log
+          if grep -E "SCRIPT ERROR|Parse Error|ERROR:" godot-runtime.log; then exit 1; fi
+
+      - name: Run gameplay regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 150s "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script res://qa/checkmate_gameplay_smoke.gd 2>&1 | tee gameplay-qa.log
+          grep -F "CHECKMATE QA RESULT: PASS" gameplay-qa.log
+
+      - name: Run UI clickthrough tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 150s "$GODOT_BIN" --headless --path "$PROJECT_DIR" --script res://qa/checkmate_ui_clickthrough.gd 2>&1 | tee ui-clickthrough-qa.log
+          grep -F "CHECKMATE UI CLICKTHROUGH RESULT: PASS" ui-clickthrough-qa.log
+
+      - name: Capture real visual screens through Godot UI navigation
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb python3-pil
+          Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
+          XVFB_PID=$!
+          trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT
+          export DISPLAY=:99
+          sleep 2
+          (cd "$PROJECT_DIR" && timeout 150s "$GODOT_BIN" --path "$PROJECT_DIR" --script res://qa/checkmate_visual_capture.gd) 2>&1 | tee visual-capture.log
+          grep -F "CHECKMATE VISUAL CAPTURE RESULT: PASS" visual-capture.log
+          mkdir -p visual-review
+          cp "$PROJECT_DIR"/CHECKMATE_*_v117.png visual-review/
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageStat
+          import hashlib
+          files = sorted(Path('visual-review').glob('*.png'))
+          if len(files) < 10:
+              raise SystemExit(f'Expected at least 10 screenshots, got {len(files)}')
+          hashes = {}
+          for path in files:
+              raw = path.read_bytes()
+              digest = hashlib.sha256(raw).hexdigest()
+              if digest in hashes:
+                  raise SystemExit(f'Duplicate screenshot: {path.name} == {hashes[digest]}')
+              hashes[digest] = path.name
+              image = Image.open(path).convert('RGB')
+              stat = ImageStat.Stat(image)
+              if image.width < 1000 or image.height < 600 or max(stat.stddev) < 2.0:
+                  raise SystemExit(f'Blank/invalid screenshot: {path.name} {image.size} std={stat.stddev}')
+              print(f'VISUAL PASS: {path.name} {image.width}x{image.height} std={stat.stddev}')
+          PY
+
+      - name: Package tested v117 build
+        shell: bash
+        run: |
+          set -euo pipefail
+          zip -qr CHECKMATE_classic_v117_QA.zip "$PROJECT_DIR" -x '*/.godot/*' '*/.godot'
+          unzip -t CHECKMATE_classic_v117_QA.zip
+
+      - name: Upload tested game and visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHECKMATE-v117-tested-build
+          path: CHECKMATE_classic_v117_QA.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload screenshots and logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHECKMATE-v117-visual-review
+          path: |
+            visual-review/*.png
+            godot-import.log
+            godot-runtime.log
+            gameplay-qa.log
+            ui-clickthrough-qa.log
+            visual-capture.log
+          if-no-files-found: error
+          retention-days: 14
