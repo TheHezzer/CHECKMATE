@@ -1,0 +1,37 @@
+--- a/zhivye_shakhmaty_cinematic/scripts/main.gd
++++ b/zhivye_shakhmaty_cinematic/scripts/main.gd
+@@ -1530,12 +1530,17 @@
+ func _is_game_ui_control_hit(screen_position: Vector2) -> bool:
+     if game_panel == null:
+         return false
++    # _input() runs before normal Control GUI handling. Treat every visible
++    # non-ignored UI control as an input shield, not only buttons and fields.
++    # This prevents taps on vote panels, labels, cards and blank panel areas
++    # from leaking through to the 3D board underneath.
+     for control in game_panel.find_children("*", "Control", true, false):
+-        if not control.is_visible_in_tree():
++        if not is_instance_valid(control) or not control.is_visible_in_tree():
+             continue
+-        if control is Button or control is LineEdit or control is OptionButton:
+-            if control.get_global_rect().has_point(screen_position):
+-                return true
++        if control.mouse_filter == Control.MOUSE_FILTER_IGNORE:
++            continue
++        if control.get_global_rect().has_point(screen_position):
++            return true
+     return false
+ 
+ func _input(event: InputEvent) -> void:
+@@ -2220,8 +2225,11 @@
+     _apply_classic_move(from_col, from_row, to_col, to_row, false)
+ 
+ func _local_team() -> String:
++    # In local bot/offline games the player's side is fixed for the whole
++    # match. current_team is the side whose turn it is and must never be used
++    # as the local player's identity (otherwise bot pieces become selectable).
+     if not online_active:
+-        return current_team
++        return local_user_team
+     if not online_match_id.is_empty():
+         return local_player_team
+     return "white" if multiplayer.is_server() else "black"
