@@ -118,7 +118,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          zip -qr CHECKMATE_classic_v117_QA.zip "$PROJECT_DIR" -x '*/.godot/*' '*/.godot'
+          (cd "$(dirname "$PROJECT_DIR")" && zip -qr "$GITHUB_WORKSPACE/CHECKMATE_classic_v117_QA.zip" "$(basename "$PROJECT_DIR")" -x '*/.godot/*' '*/.godot')
           unzip -t CHECKMATE_classic_v117_QA.zip
 
       - name: Upload tested game and visual review
